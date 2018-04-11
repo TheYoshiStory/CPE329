@@ -21,8 +21,8 @@ void main()
     init();
 
     clear_lcd();
-    write_string_lcd("Hello\nWorld!");
-    hold_lcd();
+    //write_string_lcd("Ayusman Saha\nCal Poly CPE");
+    //hold_lcd();
 
     while(1);
 }
