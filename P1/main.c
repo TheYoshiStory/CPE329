@@ -3,8 +3,6 @@
 #include "led.h"
 #include "lcd.h"
 
-// Hello World
-
 // initialization
 void init()
 {
