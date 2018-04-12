@@ -1,47 +1,54 @@
 #include "msp.h"
 #include "queue.h"
 
-char num_pad_queue[QUEUE_SIZE];
-char count;
-
-void queue_init()
+// clears all elements from queue
+void clear(queue *q)
 {
-    char i;
-
-    for (i=0; i<QUEUE_SIZE; i++)
-    {
-        num_pad_queue[i] = 0;
-    }
-
-    count = 0;
+    q->size = 0;
+    q->head = q->arr;
 }
 
-void queue_push(char num)
+// adds element to end if queue is not full
+void add(queue *q, char data)
 {
-    if(count < QUEUE_SIZE)
+    if(q->size < MAX_SIZE)
     {
-        num_pad_queue[count] = num;
-        ++count;
-    }
-}
+        q->size++;
 
-char queue_pop()
-{
-    if(count > 0)
-    {
-        char num = num_pad_queue[0];
-        --count;
-
-        char i;
-        for(i=0; i<QUEUE_SIZE-1; i++)
+        if((q->head+q->size) == &(q->arr[MAX_SIZE]))
         {
-            num_pad_queue[i] = num_pad_queue[i+1];
+            q->arr[0] = data;
+        }
+        else
+        {
+            *(q->head+q->size) = data;
+        }
+    }
+}
+
+// removes first element if queue is not empty
+char remove(queue *q)
+{
+    char data;
+
+    if(q->size > 0)
+    {
+        q->size--;
+        data = *(q->head);
+
+        if(q->head == &(q->arr[MAX_SIZE-1]))
+        {
+            q->head = q->arr;
+        }
+        else
+        {
+            q->head++;
         }
 
-        return num;
+        return(data);
     }
     else
     {
-        return 0;
+        return(0);
     }
 }

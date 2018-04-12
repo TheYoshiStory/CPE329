@@ -1,10 +1,18 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#define QUEUE_SIZE 12
+#define MAX_SIZE 64
 
-void queue_init();
-void queue_push(char num);
-char queue_pop();
+typedef struct
+{
+    char size;
+    char *head;
+    char arr[MAX_SIZE]
+}
+queue;
+
+void clear(queue *q);
+void add(queue *q, char data);
+char remove(queue *q);
 
 #endif
