@@ -7,14 +7,14 @@ void send_data(char d)
 {
     // send upper 4 bits
     LCD_CTRL->OUT &= ~(BIT3|BIT2|BIT1|BIT0);
-    LCD_CTRL->OUT |= (d>>4)&(BIT3|BIT2|BIT1|BIT0);
+    LCD_CTRL->OUT |= (d>>4) & (BIT3|BIT2|BIT1|BIT0);
     LCD_CTRL->OUT |= BIT7;
     delay_us(1);
     LCD_CTRL->OUT &= ~BIT7;
 
     // send lower 4 bits
     LCD_CTRL->OUT &= ~(BIT3|BIT2|BIT1|BIT0);
-    LCD_CTRL->OUT |= d&(BIT3|BIT2|BIT1|BIT0);
+    LCD_CTRL->OUT |= d & (BIT3|BIT2|BIT1|BIT0);
     LCD_CTRL->OUT |= BIT7;
     delay_us(1);
     LCD_CTRL->OUT &= ~BIT7;
@@ -24,9 +24,9 @@ void send_data(char d)
 void init_lcd()
 {
     // set LCD_CTRL as output
-    LCD_CTRL->SEL1 &= ~(BIT7|BIT6|BIT4|BIT3|BIT2|BIT1|BIT0);
-    LCD_CTRL->SEL0 &= ~(BIT7|BIT6|BIT4|BIT3|BIT2|BIT1|BIT0);
-    LCD_CTRL->DIR |= BIT7|BIT6|BIT4|BIT3|BIT2|BIT1|BIT0;
+    LCD_CTRL->SEL1 &= ~(BIT7|BIT6|BIT5|BIT3|BIT2|BIT1|BIT0);
+    LCD_CTRL->SEL0 &= ~(BIT7|BIT6|BIT5|BIT3|BIT2|BIT1|BIT0);
+    LCD_CTRL->DIR |= BIT7|BIT6|BIT5|BIT3|BIT2|BIT1|BIT0;
 
     // "Function Set" command
     LCD_CTRL->OUT &= ~(BIT6|BIT5);
@@ -96,4 +96,23 @@ void hold_lcd()
     LCD_CTRL->OUT &= ~(BIT6|BIT5);
     send_data(BIT3|BIT2);
     delay_us(50);
+}
+
+// shifts LCD right if input is true or left if input is false
+void shift_lcd(char r)
+{
+    if(r)
+    {
+        // "Cursor or Display Shift" command
+        LCD_CTRL->OUT &= ~(BIT6|BIT5);
+        send_data(BIT4|BIT3|BIT2);
+        delay_us(50);
+    }
+    else
+    {
+        // "Cursor or Display Shift" command
+        LCD_CTRL->OUT &= ~(BIT6|BIT5);
+        send_data(BIT4|BIT3);
+        delay_us(50);
+    }
 }

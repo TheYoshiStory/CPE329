@@ -21,8 +21,12 @@ void main()
     init();
 
     clear_lcd();
-    //write_string_lcd("Ayusman Saha\nCal Poly CPE");
-    //hold_lcd();
+    write_string_lcd("Ayusman Saha\nCPE 329");
+    hold_lcd();
 
-    while(1);
+    while(1)
+    {
+        delay_ms(1000);
+        shift_lcd(1);
+    }
 }
