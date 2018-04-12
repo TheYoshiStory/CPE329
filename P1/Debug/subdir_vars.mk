@@ -13,6 +13,7 @@ C_SRCS += \
 ../lcd.c \
 ../led.c \
 ../main.c \
+../queue.c \
 ../startup_msp432p401r_ccs.c \
 ../system_msp432p401r.c 
 
@@ -21,6 +22,7 @@ C_DEPS += \
 ./lcd.d \
 ./led.d \
 ./main.d \
+./queue.d \
 ./startup_msp432p401r_ccs.d \
 ./system_msp432p401r.d 
 
@@ -29,6 +31,7 @@ OBJS += \
 ./lcd.obj \
 ./led.obj \
 ./main.obj \
+./queue.obj \
 ./startup_msp432p401r_ccs.obj \
 ./system_msp432p401r.obj 
 
@@ -37,6 +40,7 @@ OBJS__QUOTED += \
 "lcd.obj" \
 "led.obj" \
 "main.obj" \
+"queue.obj" \
 "startup_msp432p401r_ccs.obj" \
 "system_msp432p401r.obj" 
 
@@ -45,6 +49,7 @@ C_DEPS__QUOTED += \
 "lcd.d" \
 "led.d" \
 "main.d" \
+"queue.d" \
 "startup_msp432p401r_ccs.d" \
 "system_msp432p401r.d" 
 
@@ -53,6 +58,7 @@ C_SRCS__QUOTED += \
 "../lcd.c" \
 "../led.c" \
 "../main.c" \
+"../queue.c" \
 "../startup_msp432p401r_ccs.c" \
 "../system_msp432p401r.c" 
 
