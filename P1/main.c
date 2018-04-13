@@ -26,10 +26,10 @@ void main()
     init();
     clear_lcd();
     s[1] = '\0';
+    blue_led();
 
     while(1)
     {
-        delay_ms(250);
         input = scan_keypad();
 
         if(input == '#')
@@ -44,6 +44,7 @@ void main()
         {
             s[0] = input;
             write_lcd(s);
+            delay_ms(200);
         }
     }
 }
