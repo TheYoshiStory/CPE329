@@ -10,6 +10,7 @@ CMD_SRCS += \
 
 C_SRCS += \
 ../delay.c \
+../keypad.c \
 ../lcd.c \
 ../led.c \
 ../main.c \
@@ -19,6 +20,7 @@ C_SRCS += \
 
 C_DEPS += \
 ./delay.d \
+./keypad.d \
 ./lcd.d \
 ./led.d \
 ./main.d \
@@ -28,6 +30,7 @@ C_DEPS += \
 
 OBJS += \
 ./delay.obj \
+./keypad.obj \
 ./lcd.obj \
 ./led.obj \
 ./main.obj \
@@ -37,6 +40,7 @@ OBJS += \
 
 OBJS__QUOTED += \
 "delay.obj" \
+"keypad.obj" \
 "lcd.obj" \
 "led.obj" \
 "main.obj" \
@@ -46,6 +50,7 @@ OBJS__QUOTED += \
 
 C_DEPS__QUOTED += \
 "delay.d" \
+"keypad.d" \
 "lcd.d" \
 "led.d" \
 "main.d" \
@@ -55,6 +60,7 @@ C_DEPS__QUOTED += \
 
 C_SRCS__QUOTED += \
 "../delay.c" \
+"../keypad.c" \
 "../lcd.c" \
 "../led.c" \
 "../main.c" \

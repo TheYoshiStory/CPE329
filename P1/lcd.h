@@ -11,8 +11,7 @@
 void init_lcd();
 void clear_lcd();
 void home_lcd();
-void write_char_lcd(char c);
-void write_string_lcd(char *s);
+void write_lcd(char *s);
 void hold_lcd();
 void shift_lcd(char r);
 

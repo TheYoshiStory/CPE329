@@ -20,6 +20,26 @@ void send_data(char d)
     LCD_CTRL->OUT &= ~BIT7;
 }
 
+// write a character on the LCD
+void write_char(char c)
+{
+    if(c == '\n')
+    {
+        // "Set DDRAM Address" command
+        LCD_CTRL->OUT &= ~(BIT6|BIT5);
+        send_data(BIT7|BIT6);
+        delay_us(50);
+    }
+    else
+    {
+        // "Write Data to Address" command
+        LCD_CTRL->OUT &= ~BIT6;
+        LCD_CTRL->OUT |= BIT5;
+        send_data(c);
+        delay_us(50);
+    }
+}
+
 // initialize LCD display
 void init_lcd()
 {
@@ -57,34 +77,14 @@ void home_lcd()
     delay_ms(2);
 }
 
-// write a character on the LCD
-void write_char_lcd(char c)
-{
-    if(c == '\n')
-    {
-        // "Set DDRAM Address" command
-        LCD_CTRL->OUT &= ~(BIT6|BIT5);
-        send_data(BIT7|BIT6);
-        delay_us(50);
-    }
-    else
-    {
-        // "Write Data to Address" command
-        LCD_CTRL->OUT &= ~BIT6;
-        LCD_CTRL->OUT |= BIT5;
-        send_data(c);
-        delay_us(50);
-    }
-}
-
 // write a string on the LCD
-void write_string_lcd(char *s)
+void write_lcd(char *s)
 {
     int i = 0;
 
     while(s[i] != '\0')
     {
-        write_char_lcd(s[i]);
+        write_char(s[i]);
         i++;
     }
 }
@@ -98,7 +98,7 @@ void hold_lcd()
     delay_us(50);
 }
 
-// shifts LCD right if input is true or left if input is false
+// shifts LCD right if input is nonzero or left if input is zero
 void shift_lcd(char r)
 {
     if(r)

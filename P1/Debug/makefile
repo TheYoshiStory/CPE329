@@ -11,6 +11,7 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./delay.obj" \
+"./keypad.obj" \
 "./lcd.obj" \
 "./led.obj" \
 "./main.obj" \
@@ -160,8 +161,8 @@ P1.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "delay.obj" "lcd.obj" "led.obj" "main.obj" "queue.obj" "startup_msp432p401r_ccs.obj" "system_msp432p401r.obj" 
-	-$(RM) "delay.d" "lcd.d" "led.d" "main.d" "queue.d" "startup_msp432p401r_ccs.d" "system_msp432p401r.d" 
+	-$(RM) "delay.obj" "keypad.obj" "lcd.obj" "led.obj" "main.obj" "queue.obj" "startup_msp432p401r_ccs.obj" "system_msp432p401r.obj" 
+	-$(RM) "delay.d" "keypad.d" "lcd.d" "led.d" "main.d" "queue.d" "startup_msp432p401r_ccs.d" "system_msp432p401r.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

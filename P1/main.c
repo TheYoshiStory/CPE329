@@ -2,6 +2,7 @@
 #include "delay.h"
 #include "led.h"
 #include "lcd.h"
+#include "keypad.h"
 
 // initialization
 void init()
@@ -13,20 +14,36 @@ void init()
     init_dco();
     init_led();
     init_lcd();
+    init_keypad();
 }
 
 // main program
 void main()
 {
-    init();
+    char input;
+    char s[2];
 
+    init();
     clear_lcd();
-    write_string_lcd("Ayusman Saha\nCPE 329");
-    hold_lcd();
+    s[1] = '\0';
 
     while(1)
     {
-        delay_ms(1000);
-        shift_lcd(1);
+        delay_ms(250);
+        input = scan_keypad();
+
+        if(input == '#')
+        {
+            clear_lcd();
+        }
+        else if(input == '*')
+        {
+            write_lcd("\n");
+        }
+        else if(input)
+        {
+            s[0] = input;
+            write_lcd(s);
+        }
     }
 }
