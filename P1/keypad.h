@@ -11,4 +11,7 @@
 void init_keypad();
 char scan_keypad();
 
+void process_queue();
+void probe_keypad();
+
 #endif

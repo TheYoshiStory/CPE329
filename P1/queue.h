@@ -1,18 +1,14 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef QUEUE_H_
+#define QUEUE_H_
 
-#define MAX_SIZE 64
+#include "msp.h"
 
-typedef struct
-{
-    char size;
-    char *head;
-    char arr[MAX_SIZE]
-}
-queue;
+#define QUEUE_SIZE 12
 
-void clear(queue *q);
-void add(queue *q, char data);
-char remove(queue *q);
+char queue_pop();
+void queue_push(char num);
+void init_queue();
+char get_count();
+
 
 #endif

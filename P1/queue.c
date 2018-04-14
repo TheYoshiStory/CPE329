@@ -1,54 +1,39 @@
 #include "msp.h"
 #include "queue.h"
+#include "delay.h"
 
-// clears all elements from queue
-void clear(queue *q)
+char num_pad_queue[QUEUE_SIZE];
+char count;
+
+void init_queue()
 {
-    q->size = 0;
-    q->head = q->arr;
+    count = 0;
 }
 
-// adds element to end if queue is not full
-void add(queue *q, char data)
+void queue_push(char num)
 {
-    if(q->size < MAX_SIZE)
+    if (count < QUEUE_SIZE)
     {
-        q->size++;
-
-        if((q->head+q->size) == &(q->arr[MAX_SIZE]))
-        {
-            q->arr[0] = data;
-        }
-        else
-        {
-            *(q->head+q->size) = data;
-        }
+        num_pad_queue[count] = num;
+        ++count;
     }
 }
 
-// removes first element if queue is not empty
-char remove(queue *q)
+char queue_pop()
 {
-    char data;
-
-    if(q->size > 0)
+    if (count > 0)
     {
-        q->size--;
-        data = *(q->head);
-
-        if(q->head == &(q->arr[MAX_SIZE-1]))
-        {
-            q->head = q->arr;
-        }
-        else
-        {
-            q->head++;
-        }
-
-        return(data);
+        char num = num_pad_queue[0];
+        --count;
+        return num;
     }
     else
     {
-        return(0);
+        return 0;
     }
+}
+
+char get_count()
+{
+    return count;
 }

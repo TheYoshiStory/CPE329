@@ -3,6 +3,7 @@
 #include "led.h"
 #include "lcd.h"
 #include "keypad.h"
+#include "queue.h"
 
 // initialization
 void init()
@@ -15,21 +16,27 @@ void init()
     init_led();
     init_lcd();
     init_keypad();
+    init_queue();
 }
 
 // main program
 void main()
 {
-    char input;
-    char s[2];
+    //char input;
+    //char s[2];
 
     init();
     clear_lcd();
-    s[1] = '\0';
+    //s[1] = '\0';
     blue_led();
 
     while(1)
     {
+        init_queue();
+        probe_keypad();
+        process_queue();
+        delay_ms(150);
+        /*
         input = scan_keypad();
 
         if(input == '#')
@@ -46,6 +53,7 @@ void main()
             write_lcd(s);
             delay_ms(200);
         }
+        */
+
     }
-    //comment
 }
