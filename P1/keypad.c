@@ -10,6 +10,8 @@ void init_keypad()
     KEYPAD_CTRL->DIR &= ~(BIT2|BIT1|BIT0);
     KEYPAD_CTRL->DIR |= BIT7|BIT6|BIT5|BIT4;
     KEYPAD_CTRL->OUT &= ~(BIT7|BIT6|BIT5|BIT4);
+    KEYPAD_CTRL->REN |= BIT2|BIT1|BIT0;
+    KEYPAD_CTRL->OUT &= ~(BIT2|BIT1|BIT0);
 }
 
 // scans keypad for user input
