@@ -1,7 +1,8 @@
 #include "msp.h"
 #include "keypad.h"
-#include "queue.h"
 #include "lcd.h"
+
+uint16_t bus = 0;
 
 // initialize keypad input
 void init_keypad()
@@ -16,167 +17,101 @@ void init_keypad()
     KEYPAD_CTRL->OUT &= ~(BIT2|BIT1|BIT0);
 }
 
-void process_queue()
+void process_bus()
 {
-    char input = queue_pop();
     char s[2];
     s[1] = '\0';
-    while (input != 0)
-    {
-        if(input == '#')
-        {
-            clear_lcd();
-        }
-        else if(input == '*')
-        {
-            write_lcd("\n");
-        }
-        else if(input)
-        {
-            s[0] = input;
-            write_lcd(s);
-        }
-        input = queue_pop();
-    }
 
+    if (bus & BIT0)
+    {
+        s[0] = '1';
+        write_lcd(s);
+    }
+    if (bus & BIT1)
+    {
+        s[0] = '2';
+        write_lcd(s);
+    }
+    if (bus & BIT2)
+    {
+        s[0] = '3';
+        write_lcd(s);
+    }
+    if (bus & BIT3)
+    {
+        s[0] = '4';
+        write_lcd(s);
+    }
+    if (bus & BIT4)
+    {
+        s[0] = '5';
+        write_lcd(s);
+    }
+    if (bus & BIT5)
+    {
+        s[0] = '6';
+        write_lcd(s);
+    }
+    if (bus & BIT6)
+    {
+        s[0] = '7';
+        write_lcd(s);
+    }
+    if (bus & BIT7)
+    {
+        s[0] = '8';
+        write_lcd(s);
+    }
+    if (bus & BIT8)
+    {
+        s[0] = '9';
+        write_lcd(s);
+    }
+    if (bus & BIT9)
+    {
+        write_lcd("\n");
+    }
+    if (bus & BITA)
+    {
+        s[0] = '0';
+        write_lcd(s);
+    }
+    if (bus & BITB)
+    {
+        clear_lcd();
+    }
 }
 
-void probe_keypad()
+void probe_keypad_bus()
 {
+    bus = 0;
+
     KEYPAD_CTRL->OUT |= BIT4;
 
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        queue_push('1');
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        queue_push('2');
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        queue_push('3');
-    }
+    bus |= (KEYPAD_CTRL->IN & BIT0);
+    bus |= (KEYPAD_CTRL->IN & BIT1);
+    bus |= (KEYPAD_CTRL->IN & BIT2);
 
     KEYPAD_CTRL->OUT &= ~(BIT4);
     KEYPAD_CTRL->OUT |= BIT5;
 
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        queue_push('4');
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        queue_push('5');
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        queue_push('6');
-    }
+    bus |= (KEYPAD_CTRL->IN & BIT0) << 3;
+    bus |= (KEYPAD_CTRL->IN & BIT1) << 3;
+    bus |= (KEYPAD_CTRL->IN & BIT2) << 3;
 
     KEYPAD_CTRL->OUT &= ~(BIT5);
     KEYPAD_CTRL->OUT |= BIT6;
 
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        queue_push('7');
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        queue_push('8');
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        queue_push('9');
-    }
+    bus |= (KEYPAD_CTRL->IN & BIT0) << 6;
+    bus |= (KEYPAD_CTRL->IN & BIT1) << 6;
+    bus |= (KEYPAD_CTRL->IN & BIT2) << 6;
 
     KEYPAD_CTRL->OUT &= ~(BIT6);
     KEYPAD_CTRL->OUT |= BIT7;
 
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        queue_push('*');
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        queue_push('0');
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        queue_push('#');
-    }
+    bus |= (KEYPAD_CTRL->IN & BIT0) << 9;
+    bus |= (KEYPAD_CTRL->IN & BIT1) << 9;
+    bus |= (KEYPAD_CTRL->IN & BIT2) << 9;
 
     KEYPAD_CTRL->OUT &= ~(BIT7);
-}
-
-// scans keypad for user input
-char scan_keypad()
-{
-    char input = 0;
-
-    KEYPAD_CTRL->OUT |= BIT4;
-
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        input = '1';
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        input = '2';
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        input = '3';
-    }
-
-    KEYPAD_CTRL->OUT &= ~(BIT4);
-    KEYPAD_CTRL->OUT |= BIT5;
-
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        input = '4';
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        input = '5';
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        input = '6';
-    }
-
-    KEYPAD_CTRL->OUT &= ~(BIT5);
-    KEYPAD_CTRL->OUT |= BIT6;
-
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        input = '7';
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        input = '8';
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        input = '9';
-    }
-
-    KEYPAD_CTRL->OUT &= ~(BIT6);
-    KEYPAD_CTRL->OUT |= BIT7;
-
-    if(KEYPAD_CTRL->IN & BIT0)
-    {
-        input = '*';
-    }
-    else if(KEYPAD_CTRL->IN & BIT1)
-    {
-        input = '0';
-    }
-    else if(KEYPAD_CTRL->IN & BIT2)
-    {
-        input = '#';
-    }
-
-    KEYPAD_CTRL->OUT &= ~(BIT7);
-    return(input);
 }

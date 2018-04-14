@@ -20,7 +20,6 @@ main.obj: ../delay.h
 main.obj: ../led.h
 main.obj: ../lcd.h
 main.obj: ../keypad.h
-main.obj: ../queue.h
 
 ../main.c: 
 C:/ti/ccsv8/ccs_base/arm/include/msp.h: 
@@ -42,4 +41,3 @@ C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h:
 ../led.h: 
 ../lcd.h: 
 ../keypad.h: 
-../queue.h: 
