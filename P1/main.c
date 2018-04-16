@@ -5,6 +5,7 @@
 #include "keypad.h"
 #include "password.h"
 
+// updates display and validates password
 void update_display(password *pwd, uint16_t data)
 {
     if(pwd->count == PASSWORD_SIZE)
