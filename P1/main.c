@@ -21,8 +21,10 @@ void update_display(password *pwd, uint16_t data)
         {
             clear_lcd();
             write_string_lcd("LOCKED\nENTER KEY: ");
+            pwd->input = 0;
             pwd->count = 0;
         }
+
     }
 
     if(data & BIT0)
@@ -84,6 +86,7 @@ void update_display(password *pwd, uint16_t data)
         clear_lcd();
         write_string_lcd("LOCKED\nENTER KEY: ");
         pwd->count = 0;
+        pwd->input = 0;
     }
 
     if(data & BITA)
@@ -123,11 +126,8 @@ void main()
     clear_lcd();
     write_string_lcd("LOCKED\nENTER KEY: ");
     pwd.count = 0;
-
-    pwd.key[0] = '1';
-    pwd.key[1] = '2';
-    pwd.key[2] = '3';
-    pwd.key[3] = '4';
+    pwd.input = 0;
+    pwd.failures = 0;
 
     while(1)
     {
