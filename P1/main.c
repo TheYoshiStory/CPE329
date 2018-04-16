@@ -26,8 +26,8 @@ void main()
 
     while(1)
     {
-        probe_keypad_bus();
-        process_bus();
-        delay_ms(175);
+        probe_keypad();
+        process_keypad();
+        delay_ms(200);
     }
 }

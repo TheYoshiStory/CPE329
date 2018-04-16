@@ -17,72 +17,8 @@ void init_keypad()
     KEYPAD_CTRL->OUT &= ~(BIT2|BIT1|BIT0);
 }
 
-void process_bus()
-{
-    char s[2];
-    s[1] = '\0';
-
-    if (bus & BIT0)
-    {
-        s[0] = '1';
-        write_lcd(s);
-    }
-    if (bus & BIT1)
-    {
-        s[0] = '2';
-        write_lcd(s);
-    }
-    if (bus & BIT2)
-    {
-        s[0] = '3';
-        write_lcd(s);
-    }
-    if (bus & BIT3)
-    {
-        s[0] = '4';
-        write_lcd(s);
-    }
-    if (bus & BIT4)
-    {
-        s[0] = '5';
-        write_lcd(s);
-    }
-    if (bus & BIT5)
-    {
-        s[0] = '6';
-        write_lcd(s);
-    }
-    if (bus & BIT6)
-    {
-        s[0] = '7';
-        write_lcd(s);
-    }
-    if (bus & BIT7)
-    {
-        s[0] = '8';
-        write_lcd(s);
-    }
-    if (bus & BIT8)
-    {
-        s[0] = '9';
-        write_lcd(s);
-    }
-    if (bus & BIT9)
-    {
-        write_lcd("\n");
-    }
-    if (bus & BITA)
-    {
-        s[0] = '0';
-        write_lcd(s);
-    }
-    if (bus & BITB)
-    {
-        clear_lcd();
-    }
-}
-
-void probe_keypad_bus()
+// probes keypad data bus
+void probe_keypad()
 {
     bus = 0;
 
@@ -114,4 +50,68 @@ void probe_keypad_bus()
     bus |= (KEYPAD_CTRL->IN & BIT2) << 9;
 
     KEYPAD_CTRL->OUT &= ~(BIT7);
+}
+
+// processes keypad data bus
+void process_keypad()
+{
+    if(bus & BIT0)
+    {
+        write_char_lcd('1');
+    }
+
+    if(bus & BIT1)
+    {
+        write_char_lcd('2');
+    }
+
+    if(bus & BIT2)
+    {
+        write_char_lcd('3');
+    }
+
+    if(bus & BIT3)
+    {
+        write_char_lcd('4');
+    }
+
+    if(bus & BIT4)
+    {
+        write_char_lcd('5');
+    }
+
+    if(bus & BIT5)
+    {
+        write_char_lcd('6');
+    }
+
+    if(bus & BIT6)
+    {
+        write_char_lcd('7');
+    }
+
+    if(bus & BIT7)
+    {
+        write_char_lcd('8');
+    }
+
+    if(bus & BIT8)
+    {
+        write_char_lcd('9');
+    }
+
+    if(bus & BIT9)
+    {
+        write_char_lcd('\n');
+    }
+
+    if(bus & BITA)
+    {
+        write_char_lcd('0');
+    }
+
+    if(bus & BITB)
+    {
+        clear_lcd();
+    }
 }
