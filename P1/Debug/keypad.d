@@ -17,7 +17,6 @@ keypad.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h
 keypad.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 keypad.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
 keypad.obj: ../keypad.h
-keypad.obj: ../lcd.h
 
 ../keypad.c: 
 C:/ti/ccsv8/ccs_base/arm/include/msp.h: 
@@ -36,4 +35,3 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h:
 C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h: 
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
 ../keypad.h: 
-../lcd.h: 

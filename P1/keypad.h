@@ -9,7 +9,6 @@
 #define KEYPAD_CTRL P5
 
 void init_keypad();
-void probe_keypad();
-void process_keypad();
+uint16_t scan_keypad();
 
 #endif
