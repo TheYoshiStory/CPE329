@@ -89,6 +89,23 @@ void write_string_lcd(char *s)
     }
 }
 
+// write an integer between -99 and 99 on the LCD
+void write_int_lcd(int i)
+{
+    char j;
+
+    if(i < 0)
+    {
+        write_char_lcd('-');
+        i *= -1;
+    }
+
+    j = i / 10;
+    i -= j * 10;
+    write_char_lcd(j+48);
+    write_char_lcd(i+48);
+}
+
 // turns off cursor to make LCD static
 void hold_lcd()
 {
