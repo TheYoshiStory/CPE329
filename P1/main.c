@@ -21,16 +21,16 @@ void init()
 // main program
 void main()
 {
-    password *pwd;
+    password pwd;
     uint16_t data;
     uint8_t timer;
 
     init();
     clear_lcd();
     write_string_lcd("LOCKED\nENTER KEY: ");
-    pwd->input = 0;
-    pwd->count = 0;
-    pwd->valid = 0;
+    pwd.input = 0;
+    pwd.count = 0;
+    pwd.valid = 0;
     blue_led();
 
 
@@ -45,76 +45,76 @@ void main()
             blue_led();
             clear_lcd();
             write_string_lcd("LOCKED\nENTER KEY: ");
-            pwd->count = 0;
-            pwd->input = 0;
-            pwd->valid = 0;
+            pwd.count = 0;
+            pwd.input = 0;
+            pwd.valid = 0;
         }
 
-        if(!pwd->valid)
+        if(!pwd.valid)
         {
             if(data & BITA)
             {
                 write_char_lcd('0');
-                update_password(pwd,'0');
+                update_password(&pwd,'0');
             }
 
             if(data & BIT0)
             {
                 write_char_lcd('1');
-                update_password(pwd,'1');
+                update_password(&pwd,'1');
             }
 
             if(data & BIT1)
             {
                 write_char_lcd('2');
-                update_password(pwd,'2');
+                update_password(&pwd,'2');
             }
 
             if(data & BIT2)
             {
                 write_char_lcd('3');
-                update_password(pwd,'3');
+                update_password(&pwd,'3');
             }
 
             if(data & BIT3)
             {
                 write_char_lcd('4');
-                update_password(pwd,'4');
+                update_password(&pwd,'4');
             }
 
             if(data & BIT4)
             {
                 write_char_lcd('5');
-                update_password(pwd,'5');
+                update_password(&pwd,'5');
             }
 
             if(data & BIT5)
             {
                 write_char_lcd('6');
-                update_password(pwd,'6');
+                update_password(&pwd,'6');
             }
 
             if(data & BIT6)
             {
                 write_char_lcd('7');
-                update_password(pwd,'7');
+                update_password(&pwd,'7');
             }
 
             if(data & BIT7)
             {
                 write_char_lcd('8');
-                update_password(pwd,'8');
+                update_password(&pwd,'8');
             }
 
             if(data & BIT8)
             {
                 write_char_lcd('9');
-                update_password(pwd,'9');
+                update_password(&pwd,'9');
             }
 
             if(data & BITB)
             {
-                if(check_password(pwd))
+                if(check_password(&pwd))
                 {
                     blue_led();
                     green_led();
@@ -141,8 +141,8 @@ void main()
 
                     clear_lcd();
                     write_string_lcd("LOCKED\nENTER KEY: ");
-                    pwd->input = 0;
-                    pwd->count = 0;
+                    pwd.input = 0;
+                    pwd.count = 0;
                     red_led();
                     blue_led();
                 }
