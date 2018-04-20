@@ -2,12 +2,13 @@
 #define PASSWORD_H
 
 #define PASSWORD_SIZE 4
+#define PASSWORD_KEY 1234
 
 typedef struct
 {
-    char key[PASSWORD_SIZE];
-    char input[PASSWORD_SIZE];
-    char count;
+    uint16_t input;
+    uint8_t count;
+    uint8_t valid;
 }
 password;
 
