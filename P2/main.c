@@ -9,8 +9,9 @@
 void main()
 {
     // enable MCLK on P4.3
-    TIMER_CTRL->SEL1 &= ~BIT3;
-    TIMER_CTRL->SEL0 |= BIT3;
+    P4->SEL1 &= ~BIT3;
+    P4->SEL0 |= BIT3;
+    P4->DIR |= BIT3;
 
     // configure lower 2 bits as GPIO output
     TIMER_CTRL->SEL1 &= ~(BIT1|BIT0);
