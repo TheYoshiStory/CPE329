@@ -2,7 +2,7 @@
 
 #define TIMER_CTRL P6
 #define CLK_FREQ 24000000
-#define DUTY_CYCLE 25
+#define DUTY_CYCLE 50
 #define SIGNAL_FREQ 25000
 
 // main program
