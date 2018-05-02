@@ -3,7 +3,7 @@
 
 #define VDD 3300
 #define GND 0
-#define SAMPLES 1000
+#define SAMPLES 10
 
 typedef struct
 {

@@ -1,5 +1,4 @@
 #include <math.h>
-#include "delay.h"
 #include "signal.h"
 
 void process_signal(signal *s)
@@ -10,7 +9,7 @@ void process_signal(signal *s)
     {
         if(s->type == 0)
         {
-            if(i < (s->duty_cycle / 100.0 * SAMPLES))
+            if(i < (SAMPLES * s->duty_cycle / 100.0))
             {
                 s->amplitude[i] = VDD;
             }

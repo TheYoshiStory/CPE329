@@ -66,6 +66,11 @@ void main()
     init();
     blue_led();
 
+    P3->SEL1 &= ~BIT2;
+    P3->SEL0 &= ~BIT2;
+    P3->DIR |= BIT2;
+    P3->OUT &= ~BIT2;
+
     s.type = 0;
     s.frequency = 100;
     s.duty_cycle = 50;
@@ -75,7 +80,7 @@ void main()
 
     // initialize timer A0
     TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] += CLK_FREQ / s.frequency / SAMPLES;
+    TIMER_A0->CCR[0] += CLK_FREQ / SAMPLES / s.frequency;
     TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
     SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
     __enable_irq();
@@ -84,6 +89,8 @@ void main()
     while(1)
     {
         output_dac(s.amplitude[s.state]);
+
+        /*
         data = scan_keypad();
 
         if(data & BIT0)
@@ -166,16 +173,19 @@ void main()
 
             update_display();
         }
+        */
     }
 }
 
 // timer A0 interrupt service routine
 void TA0_0_IRQHandler()
 {
-    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    TIMER_A0->CCR[0] += CLK_FREQ / s.frequency / SAMPLES;
+    P3->OUT |= BIT2;
 
-    if(s.state >= SAMPLES)
+    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+    TIMER_A0->CCR[0] += CLK_FREQ / SAMPLES / s.frequency;
+
+    if(s.state == SAMPLES)
     {
         s.state = 0;
     }
@@ -183,4 +193,6 @@ void TA0_0_IRQHandler()
     {
         s.state++;
     }
+
+    P3->OUT &= ~BIT2;
 }
