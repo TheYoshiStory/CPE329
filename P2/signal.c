@@ -2,33 +2,30 @@
 #include "delay.h"
 #include "signal.h"
 
-void process_signal(signal *s, volatile unsigned short *t)
+void process_signal(signal *s)
 {
-    if(s->type == 0)
-    {
-        if(s->state)
-        {
-            s->state = 0;
-            s->amplitude = GND;
-            *t += ((100 - s->duty_cycle) * CLK_FREQ) / (100 * s->frequency);
-        }
-        else
-        {
-            s->state = 1;
-            s->amplitude = VDD;
-            *t += (s->duty_cycle * CLK_FREQ) / (100 * s->frequency);
-        }
-    }
-    else if(s->type == 1)
-    {
+    int i;
 
-    }
-    else if(s->type == 2)
+    for(i=0; i<SAMPLES; i++)
     {
-
-    }
-    else
-    {
-        s->amplitude = 0;
+        if(s->type == 0)
+        {
+            if(i < (s->duty_cycle / 100.0 * SAMPLES))
+            {
+                s->amplitude[i] = VDD;
+            }
+            else
+            {
+                s->amplitude[i] = GND;
+            }
+        }
+        else if(s->type == 1)
+        {
+            s->amplitude[i] = (VDD / 2) * sin(2 * M_PI * SAMPLES * i) + (VDD / 2);
+        }
+        else if(s->type == 2)
+        {
+            s->amplitude[i] = VDD / SAMPLES * i;
+        }
     }
 }

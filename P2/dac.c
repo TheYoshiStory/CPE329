@@ -31,7 +31,7 @@ void output_dac(unsigned int level)
                                             // and put 12-bit level value
                                             // in low 12 bits.
 
-  DAC_CTRL->OUT &= ~BIT7;                                   // Clear P4.1 (drive /CS low on DAC)
+  DAC_CTRL->OUT &= ~BIT7;
                                                       // Using a port output to do this for now
 
   EUSCI_B0->TXBUF = (unsigned char) (DAC_Word >> 8);  // Shift upper byte of DAC_Word
@@ -46,6 +46,6 @@ void output_dac(unsigned int level)
   for(i = 200; i > 0; i--);                          // Delay 200 16 MHz SMCLK periods
                                                      //to ensure TX is complete by SIMO
 
-  DAC_CTRL->OUT |= BIT7;                                   // Set P4.1   (drive /CS high on DAC)
+  DAC_CTRL->OUT |= BIT7;
 
 }
