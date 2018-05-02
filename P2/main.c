@@ -6,9 +6,41 @@
 #include "dac.h"
 #include "signal.h"
 
-int timer_counter;
-int signal_state;
-int signal_counter;
+void update_display(signal s)
+{
+    clear_lcd();
+
+    if(s.type == 0)
+    {
+        write_string_lcd("SQUARE WAVE\n");
+        write_int_lcd(s.frequency/10);
+        write_string_lcd("0Hz @ ");
+        write_int_lcd(s.duty_cycle);
+        write_string_lcd("%");
+    }
+    else if(s.type == 1)
+    {
+        write_string_lcd("SINE WAVE\n");
+        write_int_lcd(s.frequency/10);
+        write_string_lcd("0Hz");
+    }
+    else if(s.type == 2)
+    {
+        write_string_lcd("SAWTOOTH WAVE\n");
+        write_int_lcd(s.frequency/10);
+        write_string_lcd("0Hz");
+    }
+    else
+    {
+        write_string_lcd("UNKNOWN\n");
+        write_int_lcd(s.frequency/10);
+        write_string_lcd("0Hz @ ");
+        write_int_lcd(s.duty_cycle);
+        write_string_lcd("%");
+    }
+
+    hold_lcd();
+}
 
 // initialization
 void init()
@@ -27,42 +59,127 @@ void init()
 // main program
 void main()
 {
+    uint16_t data;
+    signal s;
+
     init();
-
     blue_led();
-    clear_lcd();
-    write_string_lcd("hello world!\n");
 
+    s.type = 0;
+    s.frequency = 100;
+    s.duty_cycle = 50;
+    s.amplitude = 0;
+    s.offset = 0;
+
+    clear_lcd();
+    write_string_lcd("SQUARE WAVE\n");
+    write_int_lcd(s.frequency/10);
+    write_string_lcd("0Hz @ ");
+    write_int_lcd(s.duty_cycle);
+    write_string_lcd("%");
+    hold_lcd();
+
+    /*
     // initialize timer A0
     TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] += CLK_FREQ / 1000;
+    TIMER_A0->CCR[0] += ;
     TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
     SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
     __enable_irq();
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
+    */
 
-    timer_counter = 0;
-    signal_state = SIGNAL_OFFSET;
-    signal_counter = SIGNAL_AMPLITUDE / SIGNAL_PERIOD;
+    while(1)
+    {
+        delay_ms(200);
+        data = scan_keypad();
 
-    while(1);
+        if(data & BIT0)
+        {
+            s.frequency = 100;
+            update_display(s);
+        }
+
+        if(data & BIT1)
+        {
+            s.frequency = 200;
+            update_display(s);
+        }
+
+        if(data & BIT2)
+        {
+            s.frequency = 300;
+            update_display(s);
+        }
+
+        if(data & BIT3)
+        {
+            s.frequency = 400;
+            update_display(s);
+        }
+
+        if(data & BIT4)
+        {
+            s.frequency = 500;
+            update_display(s);
+        }
+
+        if(data & BIT5)
+        {
+            s.frequency = 600;
+            update_display(s);
+        }
+
+        if(data & BIT6)
+        {
+            s.type = 0;
+            s.duty_cycle = 50;
+            update_display(s);
+
+        }
+
+        if(data & BIT7)
+        {
+            s.type = 1;
+            update_display(s);
+        }
+
+        if(data & BIT8)
+        {
+            s.type = 2;
+            update_display(s);
+        }
+
+        if(data & BIT9)
+        {
+            if(s.duty_cycle > 10)
+            {
+                s.duty_cycle -= 10;
+            }
+
+            update_display(s);
+        }
+
+        if(data & BITA)
+        {
+            s.duty_cycle = 50;
+            update_display(s);
+        }
+
+        if(data & BITB)
+        {
+            if(s.duty_cycle < 90)
+            {
+                s.duty_cycle += 10;
+            }
+
+            update_display(s);
+        }
+    }
 }
 
 // timer A0 interrupt service routine
 void TA0_0_IRQHandler()
 {
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    TIMER_A0->CCR[0] += CLK_FREQ / 1000;
-    timer_counter++;
-
-    signal_state += signal_counter;
-
-    if(timer_counter == (SIGNAL_PERIOD / 2))
-    {
-        timer_counter = 0;
-        signal_counter *= -1;
-        P6->OUT ^= BIT1;
-    }
-
-    output_dac(signal_state);
 }
