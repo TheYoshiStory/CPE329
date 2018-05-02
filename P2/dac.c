@@ -47,5 +47,4 @@ void output_dac(unsigned int level)
                                                      //to ensure TX is complete by SIMO
 
   DAC_CTRL->OUT |= BIT7;
-
 }

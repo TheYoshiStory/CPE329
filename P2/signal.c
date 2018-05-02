@@ -5,11 +5,11 @@ void process_signal(signal *s)
 {
     int i;
 
-    for(i=0; i<SAMPLES; i++)
+    for(i=0; i< (1000 / s->frequency); i++)
     {
         if(s->type == 0)
         {
-            if(i < (SAMPLES * s->duty_cycle / 100.0))
+            if(i < ((1000 / s->frequency) * s->duty_cycle / 100.0))
             {
                 s->amplitude[i] = VDD;
             }
