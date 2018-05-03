@@ -21,7 +21,7 @@ void init_dac()
 }
 
 // output value to DAC
-void output_dac(unsigned int level)
+void output_dac(unsigned short level)
 {
   unsigned int DAC_Word = 0;
   int i;

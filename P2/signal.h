@@ -3,15 +3,15 @@
 
 #define VDD 3300
 #define GND 0
-#define SAMPLES 1000
+#define SAMPLES 12000
 
 typedef struct
 {
     unsigned char type;
     unsigned short frequency;
     unsigned char duty_cycle;
-    volatile unsigned int amplitude[SAMPLES];
-    volatile unsigned short state;
+    unsigned short amplitude[SAMPLES];
+    unsigned short state;
 }
 signal;
 

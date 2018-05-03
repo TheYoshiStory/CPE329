@@ -6,7 +6,7 @@
 #include "dac.h"
 #include "signal.h"
 
-signal s;
+volatile signal s;
 
 void update_display()
 {
@@ -66,11 +66,6 @@ void main()
     init();
     blue_led();
 
-    P3->SEL1 &= ~BIT2;
-    P3->SEL0 &= ~BIT2;
-    P3->DIR |= BIT2;
-    P3->OUT &= ~BIT2;
-
     s.type = 0;
     s.frequency = 100;
     s.duty_cycle = 50;
@@ -80,7 +75,7 @@ void main()
 
     // initialize timer A0
     TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] = CLK_FREQ / 1000;//CLK_FREQ / SAMPLES / s.frequency;
+    TIMER_A0->CCR[0] = CLK_FREQ / SAMPLES;
     TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
     SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
     __enable_irq();
@@ -88,8 +83,19 @@ void main()
 
     while(1)
     {
-        //P3->OUT &= ~BIT2;
+        output_dac(s.amplitude[s.state]);
+
         /*
+        output_dac(VDD);
+        delay_ms(5);
+        output_dac(GND);
+        delay_ms(5);
+        */
+    }
+
+    while(1)
+    {
+        delay_ms(200);
         data = scan_keypad();
 
         if(data & BIT0)
@@ -172,7 +178,6 @@ void main()
 
             update_display();
         }
-        */
     }
 }
 
@@ -180,17 +185,14 @@ void main()
 void TA0_0_IRQHandler()
 {
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    TIMER_A0->CCR[0] += CLK_FREQ / 1000;//CLK_FREQ / s.frequency / SAMPLES;
+    TIMER_A0->CCR[0] += CLK_FREQ / SAMPLES;
 
-    if(s.state == (1000 / s.frequency))
+    if(s.state == SAMPLES)
     {
-
         s.state = 0;
     }
     else
     {
-        s.state++;
+        s.state += s.frequency;
     }
-    output_dac(s.amplitude[s.state]);
-
 }

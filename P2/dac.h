@@ -9,6 +9,6 @@
 #define DAC_CTRL P1
 
 void init_dac();
-void output_dac(unsigned int level);
+void output_dac(unsigned short level);
 
 #endif
