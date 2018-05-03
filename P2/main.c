@@ -6,7 +6,8 @@
 #include "dac.h"
 #include "signal.h"
 
-volatile signal s;
+signal s;
+volatile unsigned short level;
 
 void update_display()
 {
@@ -56,6 +57,14 @@ void init()
     init_lcd();
     init_keypad();
     init_dac();
+
+    // initialize timer A0
+    TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
+    TIMER_A0->CCR[0] = CLK_FREQ / 1000;
+    TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
+    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
+    __enable_irq();
+    //NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
 }
 
 // main program
@@ -73,26 +82,14 @@ void main()
     process_signal(&s);
     update_display();
 
-    // initialize timer A0
-    TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] = CLK_FREQ / SAMPLES;
-    TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
-    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
-    __enable_irq();
-    NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
+    level = 0;
 
     while(1)
     {
-        output_dac(s.amplitude[s.state]);
-
-        /*
-        output_dac(VDD);
-        delay_ms(5);
-        output_dac(GND);
-        delay_ms(5);
-        */
+        output_dac(level);
     }
 
+    /*
     while(1)
     {
         delay_ms(200);
@@ -179,20 +176,24 @@ void main()
             update_display();
         }
     }
+    */
 }
 
 // timer A0 interrupt service routine
 void TA0_0_IRQHandler()
 {
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    TIMER_A0->CCR[0] += CLK_FREQ / SAMPLES;
+    s.state++;
 
-    if(s.state == SAMPLES)
+    if(s.state == 5)
     {
+        level = VDD;
+    }
+    else if(s.state == 10)
+    {
+        level = GND;
         s.state = 0;
     }
-    else
-    {
-        s.state += s.frequency;
-    }
+
+    TIMER_A0->CCR[0] += CLK_FREQ / 1000;
 }

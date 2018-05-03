@@ -43,8 +43,5 @@ void output_dac(unsigned short level)
 
   while (!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));      // Poll the TX flag to wait for completion
 
-  for(i = 200; i > 0; i--);                          // Delay 200 16 MHz SMCLK periods
-                                                     //to ensure TX is complete by SIMO
-
   DAC_CTRL->OUT |= BIT7;
 }
