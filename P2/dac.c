@@ -26,7 +26,7 @@ void output_dac(unsigned short level)
   uint32_t data = 0;
 
   // setup data buffer for write command
-  data = 0x1000 | (level & 0x0FFF);
+  data = 0x3000 | (level & 0x0FFF);
 
   // drive /CS low
   DAC_CTRL->OUT &= ~BIT7;

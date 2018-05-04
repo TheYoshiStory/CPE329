@@ -12,7 +12,7 @@ void build_signal(volatile signal *s)
         {
             if(i < (SAMPLES * s->duty_cycle / 100))
             {
-                s->amplitude[i] = VDD;
+                s->amplitude[i] = VDD + DAC_OFFSET;
             }
             else
             {
@@ -21,11 +21,11 @@ void build_signal(volatile signal *s)
         }
         else if(s->type == SINE)
         {
-            s->amplitude[i] = SINE_AMPLITUDE * sin(2 * M_PI * i / SAMPLES) + SINE_OFFSET;
+            s->amplitude[i] = ((VDD + DAC_OFFSET) / 2) * sin(2 * M_PI * i / SAMPLES) + ((VDD + DAC_OFFSET) / 2);
         }
         else if(s->type == RAMP)
         {
-            s->amplitude[i] = RAMP_SLOPE * i / SAMPLES;
+            s->amplitude[i] = (VDD + DAC_OFFSET) * i / SAMPLES;
         }
     }
 
