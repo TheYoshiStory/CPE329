@@ -3,7 +3,7 @@
 
 #define VDD 3300
 #define GND 0
-#define SAMPLES 12000
+#define SAMPLES 1000
 
 typedef struct
 {
@@ -15,6 +15,6 @@ typedef struct
 }
 signal;
 
-void process_signal(signal *s);
+void process_signal(volatile signal *s);
 
 #endif

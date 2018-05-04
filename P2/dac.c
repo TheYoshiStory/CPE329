@@ -24,7 +24,6 @@ void init_dac()
 void output_dac(unsigned short level)
 {
   unsigned int DAC_Word = 0;
-  int i;
 
   DAC_Word = (0x1000) | (level & 0x0FFF);   // 0x1000 sets DAC for Write
                                             // to DAC, Gain = 2, /SHDN = 1
