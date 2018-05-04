@@ -1,13 +1,14 @@
 #include <math.h>
 #include "signal.h"
 
-void process_signal(volatile signal *s)
+// calculate amplitude values for a single period and store them in a table
+void build_signal(volatile signal *s)
 {
     int i;
 
     for(i = 0; i < SAMPLES; i++)
     {
-        if(s->type == 0)
+        if(s->type == SQUARE)
         {
             if(i < (SAMPLES * s->duty_cycle / 100))
             {
@@ -18,13 +19,15 @@ void process_signal(volatile signal *s)
                 s->amplitude[i] = GND;
             }
         }
-        else if(s->type == 1)
+        else if(s->type == SINE)
         {
-            s->amplitude[i] = (1000 * sin(2.0 * M_PI * i / SAMPLES)) + (1000);
+            s->amplitude[i] = SINE_AMPLITUDE * sin(2 * M_PI * i / SAMPLES) + SINE_OFFSET;
         }
-        else if(s->type == 2)
+        else if(s->type == RAMP)
         {
-            s->amplitude[i] = i * VDD * 0.6 / SAMPLES;
+            s->amplitude[i] = RAMP_SLOPE * i / SAMPLES;
         }
     }
+
+    s->state = 0;
 }

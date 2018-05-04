@@ -7,13 +7,13 @@
 #include "signal.h"
 
 volatile signal s;
-volatile unsigned short level;
 
+// update signal specifications on the display
 void update_display()
 {
     clear_lcd();
 
-    if(s.type == 0)
+    if(s.type == SQUARE)
     {
         write_string_lcd("SQUARE WAVE\n");
         write_int_lcd(s.frequency/10);
@@ -21,25 +21,17 @@ void update_display()
         write_int_lcd(s.duty_cycle);
         write_string_lcd("%");
     }
-    else if(s.type == 1)
+    else if(s.type == SINE)
     {
         write_string_lcd("SINE WAVE\n");
         write_int_lcd(s.frequency/10);
         write_string_lcd("0Hz");
     }
-    else if(s.type == 2)
+    else if(s.type == RAMP)
     {
         write_string_lcd("SAWTOOTH WAVE\n");
         write_int_lcd(s.frequency/10);
         write_string_lcd("0Hz");
-    }
-    else
-    {
-        write_string_lcd("UNKNOWN\n");
-        write_int_lcd(s.frequency/10);
-        write_string_lcd("0Hz @ ");
-        write_int_lcd(s.duty_cycle);
-        write_string_lcd("%");
     }
 
     hold_lcd();
@@ -48,7 +40,7 @@ void update_display()
 // initialization
 void init()
 {
-    // stop watchdog timer
+    // disable watchdog timer
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 
     // initialize components
@@ -60,8 +52,10 @@ void init()
 
     // initialize timer A0
     TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] = CLK_FREQ / 1000;
+    TIMER_A0->CCR[0] = CLK_FREQ / SAMPLE_RATE;
     TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
+
+    // enable interrupts
     __enable_irq();
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
 }
@@ -71,41 +65,37 @@ void main()
 {
     uint16_t data;
 
+    // initialize system
     init();
-    blue_led();
-
-    s.type = 0;
+    s.type = SQUARE;
+    s.state = 0;
     s.frequency = 100;
     s.duty_cycle = 50;
-    s.state = 0;
-    process_signal(&s);
     update_display();
-
-    level = 0;
-
-    /*while (1)
-    {
-        output_dac(level);
-    }*/
+    build_signal(&s);
+    red_led();
 
     while(1)
     {
-        //delay_ms(100);
+        // continuously output to the DAC and poll for keypad input
         output_dac(s.amplitude[s.state]);
         data = scan_keypad();
-        if (data != 0)
+
+        // debounce if input is detected
+        if(data)
         {
-            delay_ms(250);
+            delay_ms(100);
         }
 
+        // change signal frequency to 100Hz
         if(data & BIT0)
         {
             s.frequency = 100;
             s.state = 0;
-            s.state = 0;
             update_display();
         }
 
+        // change signal frequency to 200Hz
         if(data & BIT1)
         {
             s.frequency = 200;
@@ -113,6 +103,7 @@ void main()
             update_display();
         }
 
+        // change signal frequency to 300Hz
         if(data & BIT2)
         {
             s.frequency = 300;
@@ -120,6 +111,7 @@ void main()
             update_display();
         }
 
+        // change signal frequency to 400Hz
         if(data & BIT3)
         {
             s.frequency = 400;
@@ -127,6 +119,7 @@ void main()
             update_display();
         }
 
+        // change signal frequency to 500Hz
         if(data & BIT4)
         {
             s.frequency = 500;
@@ -134,6 +127,7 @@ void main()
             update_display();
         }
 
+        // change signal frequency to 600Hz
         if(data & BIT5)
         {
             s.frequency = 600;
@@ -141,53 +135,74 @@ void main()
             update_display();
         }
 
+        // change signal type to square
         if(data & BIT6)
         {
-            s.type = 0;
+            s.type = SQUARE;
             s.duty_cycle = 50;
-            process_signal(&s);
+            reset_led();
             update_display();
+            build_signal(&s);
+            red_led();
         }
 
+        // change signal type to sine
         if(data & BIT7)
         {
-            s.type = 1;
-            process_signal(&s);
+            s.type = SINE;
+            reset_led();
             update_display();
+            build_signal(&s);
+            green_led();
         }
 
+        // change signal type to ramp
         if(data & BIT8)
         {
-            s.type = 2;
-            process_signal(&s);
+            s.type = RAMP;
+            reset_led();
             update_display();
+            build_signal(&s);
+            blue_led();
         }
 
+        // decrease signal duty cycle by 10%
         if(data & BIT9)
         {
-            if(s.duty_cycle > 10)
+            if(s.type == SQUARE)
             {
-                s.duty_cycle -= 10;
-                process_signal(&s);
+                if(s.duty_cycle > DUTY_CYCLE_MIN)
+                {
+                    s.duty_cycle -= 10;
+                    update_display();
+                    build_signal(&s);
+                }
             }
-            update_display();
         }
 
+        // reset signal duty cycle to 50%
         if(data & BITA)
         {
-            s.duty_cycle = 50;
-            process_signal(&s);
-            update_display();
+            if(s.type == SQUARE)
+            {
+                s.duty_cycle = 50;
+                update_display();
+                build_signal(&s);
+            }
         }
 
+        // increase signal duty cycle by 10%
         if(data & BITB)
         {
-            if(s.duty_cycle < 90)
+            if(s.type == SQUARE)
             {
-                s.duty_cycle += 10;
-                process_signal(&s);
+                if(s.duty_cycle < DUTY_CYCLE_MAX)
+                {
+                    s.duty_cycle += 10;
+                    update_display();
+                    build_signal(&s);
+                }
             }
-            update_display();
         }
     }
 }
@@ -195,14 +210,12 @@ void main()
 // timer A0 interrupt service routine
 void TA0_0_IRQHandler()
 {
+    // clear interrupt flag
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 
-    //Divide frequency by 100 to get unit integer index jumps
-    //Result of arbitrary choice of 100-500 as values of frequency
-    s.state += (s.frequency / 100);
-    s.state %= SAMPLES;
+    // increment index based on frequency and modulo by table size
+    s.state = (s.state + (s.frequency / 100)) % SAMPLES;
 
-    //Divide CLK_FREQ by 100,000 to get 10us between outputs
-    //Result of whole sample space being arbitrarily mapped to 10ms of waveform
-    TIMER_A0->CCR[0] += CLK_FREQ / (SAMPLES * 100);
+    // trigger interrupt every 10us
+    TIMER_A0->CCR[0] += CLK_FREQ / SAMPLE_RATE;
 }

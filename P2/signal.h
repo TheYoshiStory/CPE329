@@ -3,7 +3,15 @@
 
 #define VDD 3300
 #define GND 0
+#define DUTY_CYCLE_MAX 90
+#define DUTY_CYCLE_MIN 10
 #define SAMPLES 1000
+#define SAMPLE_RATE 100000
+#define RAMP_SLOPE 2000
+#define SINE_OFFSET 1000
+#define SINE_AMPLITUDE 1000
+
+enum TYPE{SQUARE, SINE, RAMP};
 
 typedef struct
 {
@@ -15,6 +23,6 @@ typedef struct
 }
 signal;
 
-void process_signal(volatile signal *s);
+void build_signal(volatile signal *s);
 
 #endif

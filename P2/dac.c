@@ -20,27 +20,25 @@ void init_dac()
     EUSCI_B0->IFG |= EUSCI_B_IFG_TXIFG;
 }
 
-// output value to DAC
+// output a value to the DAC
 void output_dac(unsigned short level)
 {
-  unsigned int DAC_Word = 0;
+  uint32_t data = 0;
 
-  DAC_Word = (0x1000) | (level & 0x0FFF);   // 0x1000 sets DAC for Write
-                                            // to DAC, Gain = 2, /SHDN = 1
-                                            // and put 12-bit level value
-                                            // in low 12 bits.
+  // setup data buffer for write command
+  data = 0x1000 | (level & 0x0FFF);
 
+  // drive /CS low
   DAC_CTRL->OUT &= ~BIT7;
-                                                      // Using a port output to do this for now
 
-  EUSCI_B0->TXBUF = (unsigned char) (DAC_Word >> 8);  // Shift upper byte of DAC_Word
-                                                      // 8-bits to right
+  // transmit upper byte of the data buffer
+  EUSCI_B0->TXBUF = (unsigned char)(data >> 8);
+  while(!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
 
-  while (!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));              // USCI_A0 TX buffer ready?
+  // transmit lower byte of the data buffer
+  EUSCI_B0->TXBUF = (unsigned char)(data & 0x00FF);
+  while (!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));
 
-  EUSCI_B0->TXBUF = (unsigned char) (DAC_Word & 0x00FF);     // Transmit lower byte to DAC
-
-  while (!(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG));      // Poll the TX flag to wait for completion
-
+  // drive /CS high
   DAC_CTRL->OUT |= BIT7;
 }
