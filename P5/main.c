@@ -1,218 +1,83 @@
-#include "msp.h"
 #include "delay.h"
-#include "led.h"
-#include "lcd.h"
-#include "keypad.h"
 #include "dac.h"
-#include "signal.h"
+#include "led.h"
 
-volatile signal s;
+#include "msp.h"
 
-// update signal information on the display
-void update_display()
-{
-    clear_lcd();
+void UART0_init(void);
 
-    if(s.type == SQUARE)
-    {
-        write_string_lcd("SQUARE WAVE\n");
-        write_int_lcd(s.frequency/10);
-        write_string_lcd("0Hz @ ");
-        write_int_lcd(s.duty_cycle);
-        write_string_lcd("%");
-    }
-    else if(s.type == SINE)
-    {
-        write_string_lcd("SINE WAVE\n");
-        write_int_lcd(s.frequency/10);
-        write_string_lcd("0Hz");
-    }
-    else if(s.type == RAMP)
-    {
-        write_string_lcd("SAWTOOTH WAVE\n");
-        write_int_lcd(s.frequency/10);
-        write_string_lcd("0Hz");
-    }
+unsigned short flag = 0;
+unsigned short data = 0;
+unsigned char buffer[100];
+unsigned char count = 0;
 
-    hold_lcd();
-}
-
-// initialization
-void init()
-{
-    // disable watchdog timer
-    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
-
-    // initialize components
+int main(void) {
     init_dco();
-    init_led();
-    init_lcd();
-    init_keypad();
     init_dac();
+    init_led();
+    UART0_init();
 
-    // initialize timer A0 and trigger interrupt every 10us
-    TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCR[0] = CLK_FREQ / SAMPLE_RATE;
-    TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__UP;
-
-    // enable interrupts
     __enable_irq();
-    NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
-}
+    NVIC->ISER[0] = 1 << ((EUSCIA0_IRQn) & 31);
 
-// main program
-void main()
-{
-    uint16_t data;
+    blue_led();
 
-    // initialize system
-    init();
-    s.type = SQUARE;
-    s.state = 0;
-    s.frequency = 100;
-    s.duty_cycle = 50;
-    update_display();
-    build_signal(&s);
-    red_led();
-
-    while(1)
+    while (1)
     {
-        // continuously output to the DAC and poll for keypad input
-        output_dac(s.amplitude[s.state]);
-        data = scan_keypad();
-
-        if(data)
+        if (flag)
         {
-            // change signal frequency to 100Hz
-            if(data & BIT0)
-            {
-                s.frequency = 100;
-                s.state = 0;
-                update_display();
-            }
+            data = 0;
+            data += buffer[0] * 1000;
+            data += buffer[1] * 100;
+            data += buffer[2] * 10;
+            data += buffer[3] * 1;
+            data += 760;
 
-            // change signal frequency to 200Hz
-            if(data & BIT1)
-            {
-                s.frequency = 200;
-                s.state = 0;
-                update_display();
-            }
+            output_dac(data);
 
-            // change signal frequency to 300Hz
-            if(data & BIT2)
-            {
-                s.frequency = 300;
-                s.state = 0;
-                update_display();
-            }
-
-            // change signal frequency to 400Hz
-            if(data & BIT3)
-            {
-                s.frequency = 400;
-                s.state = 0;
-                update_display();
-            }
-
-            // change signal frequency to 500Hz
-            if(data & BIT4)
-            {
-                s.frequency = 500;
-                s.state = 0;
-                update_display();
-            }
-
-            // change signal frequency to 600Hz
-            if(data & BIT5)
-            {
-                s.frequency = 600;
-                s.state = 0;
-                update_display();
-            }
-
-            // change signal type to square
-            if(data & BIT6)
-            {
-                s.type = SQUARE;
-                s.duty_cycle = 50;
-                reset_led();
-                update_display();
-                build_signal(&s);
-                red_led();
-            }
-
-            // change signal type to sine
-            if(data & BIT7)
-            {
-                s.type = SINE;
-                reset_led();
-                update_display();
-                build_signal(&s);
-                green_led();
-            }
-
-            // change signal type to ramp
-            if(data & BIT8)
-            {
-                s.type = RAMP;
-                reset_led();
-                update_display();
-                build_signal(&s);
-                blue_led();
-            }
-
-            // decrease signal duty cycle by 10%
-            if(data & BIT9)
-            {
-                if(s.type == SQUARE)
-                {
-                    if(s.duty_cycle > DUTY_CYCLE_MIN)
-                    {
-                        s.duty_cycle -= 10;
-                        update_display();
-                        build_signal(&s);
-                    }
-                }
-            }
-
-            // reset signal duty cycle to 50%
-            if(data & BITA)
-            {
-                if(s.type == SQUARE)
-                {
-                    s.duty_cycle = 50;
-                    update_display();
-                    build_signal(&s);
-                }
-            }
-
-            // increase signal duty cycle by 10%
-            if(data & BITB)
-            {
-                if(s.type == SQUARE)
-                {
-                    if(s.duty_cycle < DUTY_CYCLE_MAX)
-                    {
-                        s.duty_cycle += 10;
-                        update_display();
-                        build_signal(&s);
-                    }
-                }
-            }
-
-            // debounce button press
-            delay_ms(100);
+            flag = 0;
+            buffer[0] = 0;
+            buffer[0] = 0;
+            buffer[0] = 0;
+            buffer[0] = 0;
+            count = 0;
         }
     }
 }
 
-// timer A0 interrupt service routine
-void TA0_0_IRQHandler()
+void UART0_init(void)
 {
-    // clear interrupt flag
-    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+    EUSCI_A0->CTLW0 |= 1;       /* put in reset mode for config */
+    EUSCI_A0->MCTLW = 0;        /* disable oversampling */
+    EUSCI_A0->CTLW0 = 0x0081;   /* 1 stop bit, no parity, SMCLK, 8-bit data */
+    EUSCI_A0->BRW = 26;         /* 3,000,000 / 115200 = 26 */
+    P1->SEL0 |= 0x0C;           /* P1.3, P1.2 for UART */
+    P1->SEL1 &= ~0x0C;
+    EUSCI_A0->CTLW0 &= ~1;      /* take UART out of reset mode */
+    EUSCI_A0->IE |= BIT0;       //Enable Receive interrupts
+}
 
-    // increment index based on frequency and modulo by table size
-    s.state = (s.state + (s.frequency / 100)) % SAMPLES;
+void EUSCIA0_IRQHandler()
+{
+    if (EUSCI_A0->IV & 0x02)
+    {
+        if (EUSCI_A0->RXBUF >= 0x30 && EUSCI_A0->RXBUF <= 0x39)
+        {
+            buffer[count] = EUSCI_A0->RXBUF - 48;
+            count++;
+        }
+        else if (EUSCI_A0->RXBUF == 0x0D)
+        {
+            flag = 1;
+        }
+        while(!(EUSCI_A0->IFG & 0x02)) {}
+        if (EUSCI_A0->RXBUF == 0x0D)
+        {
+            EUSCI_A0->TXBUF = 0x0A;
+        }
+        else
+        {
+            EUSCI_A0->TXBUF = EUSCI_A0->RXBUF;
+        }
+    }
 }

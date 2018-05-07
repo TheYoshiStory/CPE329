@@ -8,7 +8,7 @@
 #define CLK_LVL_5 24000000
 #define CLK_LVL_6 48000000
 
-#define CLK_FREQ CLK_LVL_4
+#define CLK_FREQ CLK_LVL_2
 #define DELAY_US CLK_FREQ / 1700000
 #define DELAY_MS CLK_FREQ / 1000
 
