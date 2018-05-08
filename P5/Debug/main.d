@@ -18,6 +18,7 @@ main.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 main.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
 main.obj: ../delay.h
 main.obj: ../led.h
+main.obj: ../lcd.h
 main.obj: ../uart.h
 
 ../main.c: 
@@ -38,4 +39,5 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h:
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
 ../delay.h: 
 ../led.h: 
+../lcd.h: 
 ../uart.h: 
