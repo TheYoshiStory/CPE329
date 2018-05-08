@@ -9,6 +9,7 @@ CMD_SRCS += \
 ../msp432p401r.cmd 
 
 C_SRCS += \
+../adc.c \
 ../dac.c \
 ../delay.c \
 ../keypad.c \
@@ -20,6 +21,7 @@ C_SRCS += \
 ../uart.c 
 
 C_DEPS += \
+./adc.d \
 ./dac.d \
 ./delay.d \
 ./keypad.d \
@@ -31,6 +33,7 @@ C_DEPS += \
 ./uart.d 
 
 OBJS += \
+./adc.obj \
 ./dac.obj \
 ./delay.obj \
 ./keypad.obj \
@@ -42,6 +45,7 @@ OBJS += \
 ./uart.obj 
 
 OBJS__QUOTED += \
+"adc.obj" \
 "dac.obj" \
 "delay.obj" \
 "keypad.obj" \
@@ -53,6 +57,7 @@ OBJS__QUOTED += \
 "uart.obj" 
 
 C_DEPS__QUOTED += \
+"adc.d" \
 "dac.d" \
 "delay.d" \
 "keypad.d" \
@@ -64,6 +69,7 @@ C_DEPS__QUOTED += \
 "uart.d" 
 
 C_SRCS__QUOTED += \
+"../adc.c" \
 "../dac.c" \
 "../delay.c" \
 "../keypad.c" \
