@@ -5,12 +5,15 @@
 // initialize UART registers and enable RX interrupts
 void init_uart()
 {
+    // setup UCA0TXD and UCA0RXD
+    UART_CTRL->SEL1 &= ~(BIT3|BIT2);
+    UART_CTRL->SEL0 |= BIT3|BIT2;
+
+    // configure UART settings
     EUSCI_A0->CTLW0 |= 1;
     EUSCI_A0->MCTLW = 0;
     EUSCI_A0->CTLW0 = 0x0081;
     EUSCI_A0->BRW = CLK_FREQ / BAUD_RATE;
-    P1->SEL0 |= 0x0C;
-    P1->SEL1 &= ~0x0C;
     EUSCI_A0->CTLW0 &= ~1;
     EUSCI_A0->IE |= BIT0;
 }

@@ -1,6 +1,12 @@
 #ifndef UART_H
 #define UART_H
 
+/*
+ *  ---------------------------------------------
+ *  | - | - | - | - | UCA0TXD | UCA0RXD | - | - |
+ *  ---------------------------------------------
+ */
+#define UART_CTRL P1
 #define BAUD_RATE 115200
 
 void init_uart();
