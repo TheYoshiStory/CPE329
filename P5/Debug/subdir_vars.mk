@@ -16,7 +16,8 @@ C_SRCS += \
 ../led.c \
 ../main.c \
 ../startup_msp432p401r_ccs.c \
-../system_msp432p401r.c 
+../system_msp432p401r.c \
+../uart.c 
 
 C_DEPS += \
 ./dac.d \
@@ -26,7 +27,8 @@ C_DEPS += \
 ./led.d \
 ./main.d \
 ./startup_msp432p401r_ccs.d \
-./system_msp432p401r.d 
+./system_msp432p401r.d \
+./uart.d 
 
 OBJS += \
 ./dac.obj \
@@ -36,7 +38,8 @@ OBJS += \
 ./led.obj \
 ./main.obj \
 ./startup_msp432p401r_ccs.obj \
-./system_msp432p401r.obj 
+./system_msp432p401r.obj \
+./uart.obj 
 
 OBJS__QUOTED += \
 "dac.obj" \
@@ -46,7 +49,8 @@ OBJS__QUOTED += \
 "led.obj" \
 "main.obj" \
 "startup_msp432p401r_ccs.obj" \
-"system_msp432p401r.obj" 
+"system_msp432p401r.obj" \
+"uart.obj" 
 
 C_DEPS__QUOTED += \
 "dac.d" \
@@ -56,7 +60,8 @@ C_DEPS__QUOTED += \
 "led.d" \
 "main.d" \
 "startup_msp432p401r_ccs.d" \
-"system_msp432p401r.d" 
+"system_msp432p401r.d" \
+"uart.d" 
 
 C_SRCS__QUOTED += \
 "../dac.c" \
@@ -66,6 +71,7 @@ C_SRCS__QUOTED += \
 "../led.c" \
 "../main.c" \
 "../startup_msp432p401r_ccs.c" \
-"../system_msp432p401r.c" 
+"../system_msp432p401r.c" \
+"../uart.c" 
 
 
