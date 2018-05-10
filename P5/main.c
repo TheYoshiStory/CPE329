@@ -5,8 +5,8 @@
 #include "uart.h"
 #include "adc.h"
 
-char flag = 0;
-static int16_t data = 0;
+static short data;
+char flag;
 
 // main program
 int main(void)
@@ -25,38 +25,40 @@ int main(void)
     __enable_irq();
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
 
-    clear_lcd();
     blue_led();
-    tx_uart(0x41);
-
     ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+    flag = 0;
 
     while(1)
     {
-        if (flag)
+        if(flag)
         {
-            flag = 0;
+            // transmit thousands digit
+            tx_uart(data /1000  + 48);
+            data -= data / 1000 * 1000;
 
-            tx_uart((data/1000) + 48);
-            data -= (data/1000) * 1000;
-            tx_uart((data/100) + 48);
-            data -= (data/100) * 100;
-            tx_uart((data/10) + 48);
-            data -= (data/10) * 10;
-            tx_uart((data/1 + 48));
-            data -= (data/1) * 1;
+            // transmit hundreds digit
+            tx_uart(data / 100 + 48);
+            data -= data / 100 * 100;
 
+            // transmit tens digit
+            tx_uart(data / 10 + 48);
+            data -= data / 10 * 10;
+
+            // transmit ones digit
+            tx_uart(data + 48);
             tx_uart(0xD);
 
+            // start ADC sampling
             ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+            flag = 0;
         }
     }
 }
 
+// ADC14 interrupt service routine
 void ADC14_IRQHandler()
 {
-    data = read_adc_mv();
+    data = read_adc();
     flag = 1;
 }
-
-
