@@ -3,49 +3,60 @@
 #include "led.h"
 #include "lcd.h"
 #include "uart.h"
+#include "adc.h"
 
-unsigned char data;
+char flag = 0;
+static int16_t data = 0;
 
 // main program
 int main(void)
 {
+    // disable watchdog timer
+    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
+
     // initialize components
     init_dco();
     init_led();
     init_lcd();
     init_uart();
+    init_adc();
 
     // enable interrupts
     __enable_irq();
-    NVIC->ISER[0] = 1 << ((EUSCIA0_IRQn) & 31);
+    NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
 
     clear_lcd();
     blue_led();
+    tx_uart(0x41);
 
-    while(1);
-}
+    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
 
-// UART interrupt service routine
-void EUSCIA0_IRQHandler()
-{
-    data = rx_uart();
-
-    // write input to LCD and console
-    if(data)
+    while(1)
     {
-        if(data == 0x0D)
+        if (flag)
         {
-            write_char_lcd('\n');
-        }
-        else if(data == 0x08)
-        {
-            clear_lcd();
-        }
-        else
-        {
-            write_char_lcd(data);
-        }
+            flag = 0;
 
-        tx_uart(data);
+            tx_uart((data/1000) + 48);
+            data -= (data/1000) * 1000;
+            tx_uart((data/100) + 48);
+            data -= (data/100) * 100;
+            tx_uart((data/10) + 48);
+            data -= (data/10) * 10;
+            tx_uart((data/1 + 48));
+            data -= (data/1) * 1;
+
+            tx_uart(0xD);
+
+            ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+        }
     }
 }
+
+void ADC14_IRQHandler()
+{
+    data = read_adc_mv();
+    flag = 1;
+}
+
+
