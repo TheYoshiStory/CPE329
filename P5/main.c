@@ -1,64 +1,61 @@
 #include "msp.h"
 #include "delay.h"
 #include "led.h"
-#include "lcd.h"
-#include "uart.h"
-#include "adc.h"
 
-static short data;
-char flag;
+#define CH1 P3
 
-// main program
-int main(void)
+uint8_t state = 0;
+uint32_t ch1_time = 0;
+
+void main()
 {
-    // disable watchdog timer
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 
-    // initialize components
-    init_dco();
     init_led();
-    init_lcd();
-    init_uart();
-    init_adc();
+    init_dco();
 
-    // enable interrupts
+    CH1->SEL0 &= ~(BIT7|BIT5);
+    CH1->SEL1 &= ~(BIT7|BIT5);
+    CH1->DIR &= ~BIT5;
+    CH1->DIR |= BIT7;
+
+    TIMER32_1->CONTROL |= (BIT7|BIT1|BIT0);     //Enable Timer, 32-bit counter, Oneshot mode
+    TIMER32_1->CONTROL &= ~BIT5;                //Interrupt Disabled
+
+    CH1->IES &= ~BIT5;
+    CH1->IE |= BIT5;
+
     __enable_irq();
-    NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
+    NVIC->ISER[1] = 1 << ((PORT3_IRQn) & 31);
 
     blue_led();
-    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-    flag = 0;
 
     while(1)
     {
-        if(flag)
+        if (state == 1)
         {
-            // transmit thousands digit
-            tx_uart(data /1000  + 48);
-            data -= data / 1000 * 1000;
-
-            // transmit hundreds digit
-            tx_uart(data / 100 + 48);
-            data -= data / 100 * 100;
-
-            // transmit tens digit
-            tx_uart(data / 10 + 48);
-            data -= data / 10 * 10;
-
-            // transmit ones digit
-            tx_uart(data + 48);
-            tx_uart(0xD);
-
-            // start ADC sampling
-            ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-            flag = 0;
+            CH1->OUT |= BIT7;
+            //__delay_cycles(ch1_time);
+            CH1->OUT &= BIT7;
         }
     }
 }
 
-// ADC14 interrupt service routine
-void ADC14_IRQHandler()
+void PORT3_IRQHandler()
 {
-    data = read_adc();
-    flag = 1;
+    green_led();
+
+    if ((state == 0) && (CH1->IN & BIT5))
+    {
+        TIMER32_1->LOAD = 0xFFFFFFFF;               //UINT32_MAX
+        state = 1;
+        CH1->IES |= BIT5;
+    }
+    else if ((state == 1) && !(CH1->IN & BIT5))
+    {
+        state = 0;
+        CH1->IES &= ~BIT5;
+        ch1_time = 0xFFFFFFFF - TIMER32_1->VALUE;
+    }
+    CH1->IFG &= ~BIT5;
 }
