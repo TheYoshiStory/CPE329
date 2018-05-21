@@ -23,6 +23,8 @@ void main()
     __enable_irq();
     */
 
+    blue_led();
+
     while(1);
 }
 
