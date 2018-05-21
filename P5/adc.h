@@ -9,7 +9,7 @@
 #define ADC_CTRL P6
 
 #define VDD 3300
-#define SCALE 16384
+#define SCALE 16383
 
 void init_adc();
 short read_adc();
