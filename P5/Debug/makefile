@@ -13,10 +13,12 @@ ORDERED_OBJS += \
 "./adc.obj" \
 "./dac.obj" \
 "./delay.obj" \
+"./esc.obj" \
 "./keypad.obj" \
 "./lcd.obj" \
 "./led.obj" \
 "./main.obj" \
+"./rc.obj" \
 "./startup_msp432p401r_ccs.obj" \
 "./system_msp432p401r.obj" \
 "./uart.obj" \
@@ -163,8 +165,8 @@ P5.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "adc.obj" "dac.obj" "delay.obj" "keypad.obj" "lcd.obj" "led.obj" "main.obj" "startup_msp432p401r_ccs.obj" "system_msp432p401r.obj" "uart.obj" 
-	-$(RM) "adc.d" "dac.d" "delay.d" "keypad.d" "lcd.d" "led.d" "main.d" "startup_msp432p401r_ccs.d" "system_msp432p401r.d" "uart.d" 
+	-$(RM) "adc.obj" "dac.obj" "delay.obj" "esc.obj" "keypad.obj" "lcd.obj" "led.obj" "main.obj" "rc.obj" "startup_msp432p401r_ccs.obj" "system_msp432p401r.obj" "uart.obj" 
+	-$(RM) "adc.d" "dac.d" "delay.d" "esc.d" "keypad.d" "lcd.d" "led.d" "main.d" "rc.d" "startup_msp432p401r_ccs.d" "system_msp432p401r.d" "uart.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
