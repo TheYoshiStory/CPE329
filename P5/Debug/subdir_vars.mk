@@ -9,11 +9,9 @@ CMD_SRCS += \
 ../msp432p401r.cmd 
 
 C_SRCS += \
-../adc.c \
-../dac.c \
+../battery.c \
 ../delay.c \
 ../esc.c \
-../keypad.c \
 ../lcd.c \
 ../led.c \
 ../main.c \
@@ -23,11 +21,9 @@ C_SRCS += \
 ../uart.c 
 
 C_DEPS += \
-./adc.d \
-./dac.d \
+./battery.d \
 ./delay.d \
 ./esc.d \
-./keypad.d \
 ./lcd.d \
 ./led.d \
 ./main.d \
@@ -37,11 +33,9 @@ C_DEPS += \
 ./uart.d 
 
 OBJS += \
-./adc.obj \
-./dac.obj \
+./battery.obj \
 ./delay.obj \
 ./esc.obj \
-./keypad.obj \
 ./lcd.obj \
 ./led.obj \
 ./main.obj \
@@ -51,11 +45,9 @@ OBJS += \
 ./uart.obj 
 
 OBJS__QUOTED += \
-"adc.obj" \
-"dac.obj" \
+"battery.obj" \
 "delay.obj" \
 "esc.obj" \
-"keypad.obj" \
 "lcd.obj" \
 "led.obj" \
 "main.obj" \
@@ -65,11 +57,9 @@ OBJS__QUOTED += \
 "uart.obj" 
 
 C_DEPS__QUOTED += \
-"adc.d" \
-"dac.d" \
+"battery.d" \
 "delay.d" \
 "esc.d" \
-"keypad.d" \
 "lcd.d" \
 "led.d" \
 "main.d" \
@@ -79,11 +69,9 @@ C_DEPS__QUOTED += \
 "uart.d" 
 
 C_SRCS__QUOTED += \
-"../adc.c" \
-"../dac.c" \
+"../battery.c" \
 "../delay.c" \
 "../esc.c" \
-"../keypad.c" \
 "../lcd.c" \
 "../led.c" \
 "../main.c" \

@@ -11,10 +11,6 @@ void init_rc(volatile channel *ch)
     RC_CTRL->IES &= ~(BIT7|BIT6|BIT5|BIT3|BIT2|BIT0);
     RC_CTRL->IE |= BIT7|BIT6|BIT5|BIT3|BIT2|BIT0;
 
-    // enable Timer32 for pulse timing
-    TIMER32_1->CONTROL |= TIMER32_CONTROL_ENABLE | TIMER32_CONTROL_SIZE | TIMER32_CONTROL_ONESHOT;
-    TIMER32_1->CONTROL &= ~TIMER32_CONTROL_IE;
-
     // initialize channel states and times
     ch[0].time = 0;
     ch[0].state = 0;
@@ -28,6 +24,13 @@ void init_rc(volatile channel *ch)
     ch[4].state = 0;
     ch[5].time = 0;
     ch[5].state = 0;
+
+    // enable Timer32 for pulse timing
+    TIMER32_1->CONTROL |= TIMER32_CONTROL_ENABLE | TIMER32_CONTROL_SIZE | TIMER32_CONTROL_ONESHOT;
+    TIMER32_1->CONTROL &= ~TIMER32_CONTROL_IE;
+
+    // enable RC_CTRL port interrupts
+    NVIC->ISER[1] = 1 << ((PORT3_IRQn) & 31);
 }
 
 // time pulses from RC receiver input

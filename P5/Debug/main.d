@@ -20,7 +20,7 @@ main.obj: ../delay.h
 main.obj: ../led.h
 main.obj: ../rc.h
 main.obj: ../esc.h
-main.obj: ../adc.h
+main.obj: ../battery.h
 
 ../main.c: 
 C:/ti/ccsv8/ccs_base/arm/include/msp.h: 
@@ -42,4 +42,4 @@ C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h:
 ../led.h: 
 ../rc.h: 
 ../esc.h: 
-../adc.h: 
+../battery.h: 
