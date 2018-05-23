@@ -51,6 +51,7 @@ void process_rc(volatile channel *ch)
             ch[0].time -= TIMER32_1->VALUE;
             ch[0].state = 0;
             RC_CTRL->IES &= ~BIT0;
+            ch[0].output = ch[0].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT0;
@@ -70,6 +71,7 @@ void process_rc(volatile channel *ch)
             ch[1].time -= TIMER32_1->VALUE;
             ch[1].state = 0;
             RC_CTRL->IES &= ~BIT2;
+            ch[1].output = ch[1].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT2;
@@ -89,6 +91,7 @@ void process_rc(volatile channel *ch)
             ch[2].time -= TIMER32_1->VALUE;
             ch[2].state = 0;
             RC_CTRL->IES &= ~BIT3;
+            ch[2].output = ch[2].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT3;
@@ -108,6 +111,7 @@ void process_rc(volatile channel *ch)
             ch[3].time -= TIMER32_1->VALUE;
             ch[3].state = 0;
             RC_CTRL->IES &= ~BIT5;
+            ch[3].output = ch[3].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT5;
@@ -127,6 +131,7 @@ void process_rc(volatile channel *ch)
             ch[4].time -= TIMER32_1->VALUE;
             ch[4].state = 0;
             RC_CTRL->IES &= ~BIT6;
+            ch[4].output = ch[4].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT6;
@@ -146,6 +151,7 @@ void process_rc(volatile channel *ch)
             ch[5].time -= TIMER32_1->VALUE;
             ch[5].state = 0;
             RC_CTRL->IES &= ~BIT7;
+            ch[5].output = ch[5].time/8;
         }
 
         RC_CTRL->IFG &= ~BIT7;
