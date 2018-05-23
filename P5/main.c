@@ -16,8 +16,8 @@ void init()
     init_led();
     init_dco();
     //init_rc(ch);
-    //init_esc();
-    //init_battery();
+    init_esc();
+    init_battery();
 
     // enable all interrupts
     __enable_irq();
@@ -30,12 +30,10 @@ void main()
 
     while(1)
     {
-        /*
         TIMER_A0->CCR[1] = 3000;
         TIMER_A0->CCR[2] = 3000;
         TIMER_A0->CCR[3] = 3000;
         TIMER_A0->CCR[4] = 3000;
-        */
     }
 }
 
