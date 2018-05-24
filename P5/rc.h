@@ -12,7 +12,7 @@ typedef struct
 {
     unsigned char state;
     unsigned int time;
-    unsigned int output;
+    unsigned short pulse;
 }
 channel;
 

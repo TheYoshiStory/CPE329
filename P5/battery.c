@@ -34,10 +34,12 @@ void read_battery()
 {
     if((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD)
     {
+        // start Timer32
         TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
     }
     else
     {
+        // stop Timer32 and turn off buzzer
         TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
         BATTERY_CTRL->OUT &= ~BIT1;
     }
@@ -48,6 +50,7 @@ void read_battery()
 // sound buzzer to indicate low battery voltage
 void alert_battery()
 {
+    // toggle buzzer and clear Timer32 interrupt
     BATTERY_CTRL->OUT ^= BIT1;
     TIMER32_2->INTCLR++;
 }

@@ -18,9 +18,10 @@ main.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 main.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
 main.obj: ../delay.h
 main.obj: ../led.h
+main.obj: ../battery.h
+main.obj: ../imu.h
 main.obj: ../rc.h
 main.obj: ../esc.h
-main.obj: ../battery.h
 
 ../main.c: 
 C:/ti/ccsv8/ccs_base/arm/include/msp.h: 
@@ -40,6 +41,7 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h:
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
 ../delay.h: 
 ../led.h: 
+../battery.h: 
+../imu.h: 
 ../rc.h: 
 ../esc.h: 
-../battery.h: 

@@ -12,6 +12,7 @@ C_SRCS += \
 ../battery.c \
 ../delay.c \
 ../esc.c \
+../imu.c \
 ../lcd.c \
 ../led.c \
 ../main.c \
@@ -24,6 +25,7 @@ C_DEPS += \
 ./battery.d \
 ./delay.d \
 ./esc.d \
+./imu.d \
 ./lcd.d \
 ./led.d \
 ./main.d \
@@ -36,6 +38,7 @@ OBJS += \
 ./battery.obj \
 ./delay.obj \
 ./esc.obj \
+./imu.obj \
 ./lcd.obj \
 ./led.obj \
 ./main.obj \
@@ -48,6 +51,7 @@ OBJS__QUOTED += \
 "battery.obj" \
 "delay.obj" \
 "esc.obj" \
+"imu.obj" \
 "lcd.obj" \
 "led.obj" \
 "main.obj" \
@@ -60,6 +64,7 @@ C_DEPS__QUOTED += \
 "battery.d" \
 "delay.d" \
 "esc.d" \
+"imu.d" \
 "lcd.d" \
 "led.d" \
 "main.d" \
@@ -72,6 +77,7 @@ C_SRCS__QUOTED += \
 "../battery.c" \
 "../delay.c" \
 "../esc.c" \
+"../imu.c" \
 "../lcd.c" \
 "../led.c" \
 "../main.c" \
