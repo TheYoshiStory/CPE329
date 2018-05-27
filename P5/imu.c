@@ -2,76 +2,95 @@
 #include "delay.h"
 #include "imu.h"
 
-void init_imu()
+// initialize IMU module
+void init_imu(volatile sensor *s)
 {
-    P1->SEL0 |= BIT6 | BIT7;                // Set I2C pins of eUSCI_B0
+    // setup SCL and SDA lines for I2C
+    IMU_CTRL->SEL1 &= ~(BIT7|BIT6);
+    IMU_CTRL->SEL0 |= BIT7|BIT6;
 
-    // Enable eUSCIB0 interrupt in NVIC module
-    NVIC->ISER[0] = 1 << ((EUSCIB0_IRQn) & 31);
+    // initialize sensor data
+    s->i2c_flag = 0;
+    s->offset[X] = 0;
+    s->offset[Y] = 0;
+    s->offset[Z] = 0;
 
-    // Configure USCI_B0 for I2C mode
-    EUSCI_B0->CTLW0 |= EUSCI_A_CTLW0_SWRST;   // Software reset enabled
-    EUSCI_B0->CTLW0 = EUSCI_A_CTLW0_SWRST |   // Remain eUSCI in reset mode
-            EUSCI_B_CTLW0_MODE_3 |            // I2C mode
-            EUSCI_B_CTLW0_MST |               // Master mode
-            EUSCI_B_CTLW0_SYNC |              // Sync mode
-            EUSCI_B_CTLW0_SSEL__SMCLK;        // SMCLK
-
+    // configure USCI_B0 for I2C
+    EUSCI_B0->CTLW0 |= EUSCI_A_CTLW0_SWRST;
+    EUSCI_B0->CTLW0 = EUSCI_B_CTLW0_MST | EUSCI_B_CTLW0_MODE_3 | EUSCI_B_CTLW0_SYNC | EUSCI_B_CTLW0_SSEL__SMCLK | EUSCI_A_CTLW0_SWRST;
     EUSCI_B0->BRW = CLK_FREQ / IMU_FREQ;
-    EUSCI_B0->I2CSA = IMU_ADDR;          // Slave address
-    EUSCI_B0->CTLW0 &= ~EUSCI_A_CTLW0_SWRST;  // Release eUSCI from reset
+    EUSCI_B0->I2CSA = IMU_ADDR;
+    EUSCI_B0->CTLW0 &= ~EUSCI_A_CTLW0_SWRST;
+    EUSCI_B0->IE |= EUSCI_A_IE_TXIE | EUSCI_A_IE_RXIE;
 
-    EUSCI_B0->IE |= EUSCI_A_IE_RXIE |         // Enable receive interrupt
-                    EUSCI_A_IE_TXIE;
+    // enable I2C interrupts
+    NVIC->ISER[0] = 1 << ((EUSCIB0_IRQn) & 31);
 }
 
 // write a byte to the specified register
-void write_imu(unsigned char reg, unsigned char data)
+void write_imu(unsigned char reg, unsigned char data, volatile sensor *s)
 {
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;          // Set transmit mode (write)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition
+    // set transmit mode and send START condition
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    while (!TransmitFlag);                // Wait for EEPROM address to transmit
-    TransmitFlag = 0;
+    // send register address
+    EUSCI_B0->TXBUF = reg;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    EUSCI_B0 -> TXBUF = reg;    // Send the high byte of the memory address
+    // send register data
+    EUSCI_B0->TXBUF = data;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    while (!TransmitFlag);            // Wait for the transmit to complete
-    TransmitFlag = 0;
-
-    EUSCI_B0 -> TXBUF = data;    // Send the high byte of the memory address
-
-    while (!TransmitFlag);            // Wait for the transmit to complete
-    TransmitFlag = 0;
-
-    EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;   // I2C stop condition
+    // send STOP condition
+    EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;
 }
 
 // read a byte from the specified register
-unsigned char read_imu(unsigned char reg)
+unsigned char read_imu(unsigned char reg, volatile sensor *s)
 {
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;      // Set transmit mode (write)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;   // I2C start condition
+    // set transmit mode and send START condition
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    while (!TransmitFlag);                // Wait for EEPROM address to transmit
-    TransmitFlag = 0;
+    // send register address
+    EUSCI_B0->TXBUF = reg;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    EUSCI_B0 -> TXBUF = reg;    // Send the high byte of the memory address
+    // set receive mode and send RESTART condition
+    EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_TR;
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;
+    while((EUSCI_B0->CTLW0 & EUSCI_B_CTLW0_TXSTT));
 
-    while (!TransmitFlag);            // Wait for the transmit to complete
-    TransmitFlag = 0;
-
-    EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_TR;   // Set receive mode (read)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT; // I2C start condition (restart)
-
-    // Wait for start to be transmitted
-    while ((EUSCI_B0->CTLW0 & EUSCI_B_CTLW0_TXSTT));
-
-    // set stop bit to trigger after first byte
+    // wait to receive data
     EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTP;
+    while(!s->i2c_flag);
+    s->i2c_flag = 0;
 
-    while (!TransmitFlag);            // Wait to receive a byte
-    TransmitFlag = 0;
+    return(EUSCI_B0->RXBUF & 0xFF);
+}
 
-    return(EUSCI_B0->RXBUF);
+// set flag for I2C byte transmit and receive
+void i2c_imu(volatile sensor *s)
+{
+    // check if byte was successfully received
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)
+    {
+        s->i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_RXIFG0;
+    }
+
+    // check if byte was successfully transmitted
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)
+    {
+        s->i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
+    }
 }

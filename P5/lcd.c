@@ -99,6 +99,10 @@ void write_int_lcd(int i)
         write_char_lcd('-');
         i *= -1;
     }
+    else
+    {
+        write_char_lcd('+');
+    }
 
     j = i / 10;
     i -= j * 10;
