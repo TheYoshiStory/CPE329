@@ -11,6 +11,7 @@
 #define IMU_ADDR 0x68
 #define IMU_FREQ 400000
 #define IMU_CAL 4096
+#define IMU_RATE 100
 
 #define PWR_MGMT_1 0x6B
 #define CONFIG 0x1A
@@ -49,15 +50,16 @@
 #define GYRO_SCALE 65.500
 
 #define ALPHA 0.950
-#define BETA 0.500
+#define BETA 0.250
 
 typedef struct
 {
-    unsigned char i2c_flag;
-    int angle[3];
-    int offset[3];
-    short gyro[3];
+    char sample_flag;
     short accel[3];
+    short gyro[3];
+    int offset[3];
+    char i2c_flag;
+
 }
 sensor;
 
@@ -65,5 +67,6 @@ void init_imu(volatile sensor *s);
 void write_imu(unsigned char reg, unsigned char data, volatile sensor *s);
 unsigned char read_imu(unsigned char reg, volatile sensor *s);
 void i2c_imu(volatile sensor *s);
+void sample_imu(volatile sensor *s);
 
 #endif

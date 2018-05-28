@@ -10,11 +10,10 @@
 #include "lcd.h"
 unsigned char count;
 
-#define SAMPLE_RATE 100
+int angle[3];
 
 volatile sensor s;
 volatile channel ch[6];
-volatile char sample_flag;
 
 // read accelerometer and gyroscope data
 void angle_read()
@@ -41,18 +40,18 @@ void angle_calc()
     accel_angle[PITCH] = ((atan2(s.accel[X],sqrt((s.accel[Y] * s.accel[Y]) + (s.accel[Z] * s.accel[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX;
 
     // calculate angle based on gyroscope data
-    gyro_angle[ROLL] = s.angle[ROLL] + (s.gyro[X] * UINT16_MAX / GYRO_SCALE / SAMPLE_RATE);
-    gyro_angle[PITCH] = s.angle[PITCH] + (s.gyro[Y] * UINT16_MAX / GYRO_SCALE / SAMPLE_RATE);
-    gyro_angle[YAW] = s.gyro[Z] * UINT16_MAX / GYRO_SCALE / SAMPLE_RATE;
+    gyro_angle[ROLL] = angle[ROLL] + (s.gyro[X] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
+    gyro_angle[PITCH] = angle[PITCH] + (s.gyro[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
+    gyro_angle[YAW] = s.gyro[Z] * UINT16_MAX / GYRO_SCALE;
 
     // couple roll and pitch using yaw
-    gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / UINT16_MAX * M_PI / 180);
-    gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / UINT16_MAX * M_PI / 180);
+    gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
+    gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
 
     // combine gyroscope and accelerometer using a complementary filter
-    s.angle[ROLL] = ALPHA * gyro_angle[ROLL] + (1 - ALPHA) * accel_angle[ROLL];
-    s.angle[PITCH] = ALPHA * gyro_angle[PITCH] + (1 - ALPHA) * accel_angle[PITCH];
-    s.angle[YAW] = BETA * s.angle[YAW] + (1 - BETA) * s.gyro[Z] / GYRO_SCALE;
+    angle[ROLL] = ALPHA * gyro_angle[ROLL] + (1 - ALPHA) * accel_angle[ROLL];
+    angle[PITCH] = ALPHA * gyro_angle[PITCH] + (1 - ALPHA) * accel_angle[PITCH];
+    angle[YAW] = BETA * angle[YAW] + (1 - BETA) * gyro_angle[YAW];
 }
 
 // system initialization
@@ -68,15 +67,9 @@ void init()
     init_led();
     //init_battery();
     init_imu(&s);
-    //init_rc(ch);
-    //init_esc();
+    init_rc(ch);
+    init_esc();
     init_lcd();
-
-    // configure TimerA for 1ms interval timing
-    TIMER_A1->CTL |= TIMER_A_CTL_TASSEL_2 | TIMER_A_CTL_ID__4 | TIMER_A_CTL_MC__STOP |TIMER_A_CTL_CLR | TIMER_A_CTL_IE;
-    TIMER_A1->CCTL[0] = TIMER_A_CCTLN_CCIE;
-    TIMER_A1->CCR[0] = CLK_FREQ / 4 / SAMPLE_RATE;
-    NVIC->ISER[0] = 1 << ((TA1_0_IRQn) & 31);
 
     // enable all interrupts
     __enable_irq();
@@ -118,8 +111,8 @@ void main()
 
     while(1)
     {
-        while(!sample_flag);
-        sample_flag = 0;
+        while(!s.sample_flag);
+        s.sample_flag = 0;
         count++;
 
         angle_read();
@@ -128,23 +121,22 @@ void main()
         if(count == 10)
         {
             clear_lcd();
-            write_string_lcd("ROLL:  ");
-            write_int_lcd(s.angle[ROLL] / UINT16_MAX);
-            write_string_lcd("\nPITCH: ");
-            write_int_lcd(s.angle[PITCH] / UINT16_MAX);
-            write_string_lcd("      ");
             count = 0;
+
+            write_string_lcd("ROLL: ");
+            write_int_lcd(angle[ROLL] / UINT16_MAX);
+
+            write_string_lcd("\nPITCH: ");
+            write_int_lcd(angle[PITCH] / UINT16_MAX);
+            write_string_lcd("      ");
+
+            /*
+            write_string_lcd("\nYAW:  ");
+            write_int_lcd(angle[YAW] / UINT16_MAX);
+            write_string_lcd("       ");
+            */
         }
     }
-}
-
-
-// TimerA interrupt service routine
-void TA1_0_IRQHandler()
-{
-    // clear interrupt flag and set sample flag
-    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    sample_flag = 1;
 }
 
 // ADC14 interrupt service routine
@@ -163,6 +155,12 @@ void T32_INT2_IRQHandler()
 void EUSCIB0_IRQHandler()
 {
     i2c_imu(&s);
+}
+
+// TimerA interrupt service routine
+void TA1_0_IRQHandler()
+{
+    sample_imu(&s);
 }
 
 // P3 interrupt service routine

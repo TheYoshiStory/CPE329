@@ -9,12 +9,6 @@ void init_imu(volatile sensor *s)
     IMU_CTRL->SEL1 &= ~(BIT7|BIT6);
     IMU_CTRL->SEL0 |= BIT7|BIT6;
 
-    // initialize sensor data
-    s->i2c_flag = 0;
-    s->offset[X] = 0;
-    s->offset[Y] = 0;
-    s->offset[Z] = 0;
-
     // configure USCI_B0 for I2C
     EUSCI_B0->CTLW0 |= EUSCI_A_CTLW0_SWRST;
     EUSCI_B0->CTLW0 = EUSCI_B_CTLW0_MST | EUSCI_B_CTLW0_MODE_3 | EUSCI_B_CTLW0_SYNC | EUSCI_B_CTLW0_SSEL__SMCLK | EUSCI_A_CTLW0_SWRST;
@@ -23,8 +17,15 @@ void init_imu(volatile sensor *s)
     EUSCI_B0->CTLW0 &= ~EUSCI_A_CTLW0_SWRST;
     EUSCI_B0->IE |= EUSCI_A_IE_TXIE | EUSCI_A_IE_RXIE;
 
-    // enable I2C interrupts
+    // configure TimerA for 1ms interval timing
+    TIMER_A1->CTL |= TIMER_A_CTL_TASSEL_2 | TIMER_A_CTL_ID__4 | TIMER_A_CTL_MC__STOP |TIMER_A_CTL_CLR | TIMER_A_CTL_IE;
+    TIMER_A1->CCTL[0] = TIMER_A_CCTLN_CCIE;
+    TIMER_A1->CCR[0] = CLK_FREQ / 4 / IMU_RATE;
+    TIMER_A1->CTL |= TIMER_A_CTL_MC__STOP;
+
+    // enable I2C and TimerA interrupts
     NVIC->ISER[0] = 1 << ((EUSCIB0_IRQn) & 31);
+    NVIC->ISER[0] = 1 << ((TA1_0_IRQn) & 31);
 }
 
 // write a byte to the specified register
@@ -93,4 +94,12 @@ void i2c_imu(volatile sensor *s)
         s->i2c_flag = 1;
         EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
     }
+}
+
+// run main program at IMU_RATE
+void sample_imu(volatile sensor *s)
+{
+    // set sample flag and clear interrupt flag
+    s->sample_flag = 1;
+    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 }
