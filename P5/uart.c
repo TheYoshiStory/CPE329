@@ -16,6 +16,8 @@ void init_uart()
     EUSCI_A0->BRW = CLK_FREQ / BAUD_RATE;
     EUSCI_A0->CTLW0 &= ~1;
     EUSCI_A0->IE |= BIT0;
+
+    NVIC->ISER[0] = 1 << ((EUSCIA0_IRQn) & 31);
 }
 
 // transmit a byte over UART
@@ -36,4 +38,15 @@ unsigned char rx_uart()
     {
         return(0);
     }
+}
+
+void clear_terminal_uart()
+{
+    tx_uart(27);    //ESC
+    tx_uart(91);    //[
+    tx_uart(50);    //2
+    tx_uart(74);    //J
+    tx_uart(27);
+    tx_uart(91);
+    tx_uart(72);
 }

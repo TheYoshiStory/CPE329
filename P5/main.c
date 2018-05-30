@@ -5,6 +5,7 @@
 #include "imu.h"
 #include "rc.h"
 #include "esc.h"
+#include "uart.h"
 #include <math.h>
 
 #include "lcd.h"
@@ -134,6 +135,8 @@ void init()
     init_esc();
     init_lcd();
 
+    init_uart();
+
     // enable all interrupts
     __enable_irq();
 
@@ -172,6 +175,8 @@ void main()
     init();
     green_led();
 
+    clear_terminal_uart();
+
     while(1)
     {
         while(!sample_flag);
@@ -180,7 +185,81 @@ void main()
 
         angle_calc();
 
-        if(count == 10)
+        short data = angle[ROLL] / UINT16_MAX;
+
+        if (angle[ROLL] < 0)
+        {
+            tx_uart(45);    //-
+            data *= -1;
+        }
+        else
+        {
+            tx_uart(43);    //+
+        }
+        tx_uart((data / 10) + 48);
+        data -= (data / 10) * 10;
+        tx_uart((data + 48));
+
+        tx_uart(32);
+        tx_uart(44);
+        tx_uart(32);
+
+        data = angle[PITCH] / UINT16_MAX;
+
+        if (angle[PITCH] < 0)
+        {
+            tx_uart(45);    //-
+            data *= -1;
+        }
+        else
+        {
+            tx_uart(43);    //+
+        }
+        tx_uart((data / 10) + 48);
+        data -= (data / 10) * 10;
+        tx_uart((data + 48));
+
+        tx_uart(32);
+        tx_uart(44);
+        tx_uart(32);
+
+        data = angle[YAW] / UINT16_MAX;
+
+        if (angle[YAW] < 0)
+        {
+            tx_uart(45);    //-
+            data *= -1;
+        }
+        else
+        {
+            tx_uart(43);    //+
+        }
+
+        tx_uart((data / 100) + 48);
+        data -= (data / 100) * 100;
+        tx_uart((data / 10) + 48);
+        data -= (data / 10) * 10;
+        tx_uart((data + 48));
+
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+        tx_uart(8);
+
+
+        if(count == -1)
         {
             clear_lcd();
             count = 0;

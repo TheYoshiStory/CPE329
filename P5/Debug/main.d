@@ -22,6 +22,7 @@ main.obj: ../battery.h
 main.obj: ../imu.h
 main.obj: ../rc.h
 main.obj: ../esc.h
+main.obj: ../uart.h
 main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/math.h
 main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h
 main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/linkage.h
@@ -51,6 +52,7 @@ C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h:
 ../imu.h: 
 ../rc.h: 
 ../esc.h: 
+../uart.h: 
 C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/math.h: 
 C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h: 
 C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/linkage.h: 
