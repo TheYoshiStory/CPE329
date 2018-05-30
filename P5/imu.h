@@ -43,30 +43,15 @@
 #define PITCH 1
 #define YAW 2
 
-#define ROLL_OFFSET -1
-#define PITCH_OFFSET -3
+#define ROLL_OFFSET 0
+#define PITCH_OFFSET 0
 
 #define ACCEL_SCALE 417.959
 #define GYRO_SCALE 65.500
 
-#define ALPHA 0.950
+#define ALPHA  0.850
 #define BETA 0.250
 
-typedef struct
-{
-    char sample_flag;
-    short accel[3];
-    short gyro[3];
-    int offset[3];
-    char i2c_flag;
-
-}
-sensor;
-
-void init_imu(volatile sensor *s);
-void write_imu(unsigned char reg, unsigned char data, volatile sensor *s);
-unsigned char read_imu(unsigned char reg, volatile sensor *s);
-void i2c_imu(volatile sensor *s);
-void sample_imu(volatile sensor *s);
+void init_imu();
 
 #endif

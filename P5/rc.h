@@ -8,6 +8,16 @@
  */
 #define RC_CTRL P3
 
+/*
+ *  ----------------------
+ *  | CH1 - ROLL         |
+ *  | CH2 - PITCH        |
+ *  | CH3 - THROTTLE     |
+ *  | CH4 - YAW          |
+ *  | CH5 - RIGHT SWITCH |
+ *  | CH6 - LEFT SWITCH  |
+ *  ----------------------
+ */
 typedef struct
 {
     unsigned char state;
