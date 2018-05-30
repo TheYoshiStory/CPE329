@@ -1,15 +1,13 @@
 #include "msp.h"
 #include "delay.h"
 #include "led.h"
-#include "battery.h"
 #include "imu.h"
+#include "battery.h"
 #include "rc.h"
 #include "esc.h"
-#include "uart.h"
 #include <math.h>
 
-#include "lcd.h"
-unsigned char count;
+#include "uart.h"
 
 volatile char i2c_flag;
 volatile char sample_flag;
@@ -114,6 +112,100 @@ void angle_calc()
     }
 }
 
+// print angle values to UART console for debugging
+void angle_print()
+{
+    short data;
+
+    // print roll angle
+    tx_uart('R');
+    tx_uart('O');
+    tx_uart('L');
+    tx_uart('L');
+    tx_uart(':');
+    tx_uart(' ');
+
+    data = angle[ROLL] / UINT16_MAX;
+
+    if(data < 0)
+    {
+        tx_uart('-');
+        data *= -1;
+    }
+    else
+    {
+        tx_uart('+');
+    }
+
+    tx_uart(data / 10 + 48);
+    data -= data / 10 * 10;
+    tx_uart(data + 48);
+    tx_uart('d');
+    tx_uart('e');
+    tx_uart('g');
+    tx_uart(0x09);
+
+    // print pitch angle
+    tx_uart('P');
+    tx_uart('I');
+    tx_uart('T');
+    tx_uart('C');
+    tx_uart('H');
+    tx_uart(':');
+    tx_uart(' ');
+
+    data = angle[PITCH] / UINT16_MAX;
+
+    if(data < 0)
+    {
+        tx_uart('-');
+        data *= -1;
+    }
+    else
+    {
+        tx_uart('+');
+    }
+
+    tx_uart(data / 10 + 48);
+    data -= data / 10 * 10;
+    tx_uart(data + 48);
+    tx_uart('d');
+    tx_uart('e');
+    tx_uart('g');
+    tx_uart(0x09);
+
+    tx_uart('Y');
+    tx_uart('A');
+    tx_uart('W');
+    tx_uart(':');
+    tx_uart(' ');
+
+    // print yaw angular velocity
+    data = angle[YAW] / UINT16_MAX;
+
+    if(data < 0)
+    {
+        tx_uart('-');
+        data *= -1;
+    }
+    else
+    {
+        tx_uart('+');
+    }
+
+    tx_uart(data / 100 + 48);
+    data -= data / 100 * 100;
+    tx_uart(data / 10 + 48);
+    data -= data / 10 * 10;
+    tx_uart(data + 48);
+    tx_uart('d');
+    tx_uart('e');
+    tx_uart('g');
+    tx_uart('/');
+    tx_uart('s');
+    tx_uart(0x0D);
+}
+
 // system initialization
 void init()
 {
@@ -130,11 +222,11 @@ void init()
     init_dco();
     init_led();
     init_imu();
-    //init_battery();
+    init_battery();
     init_rc(ch);
     init_esc();
-    init_lcd();
 
+    // use UART for debugging
     init_uart();
 
     // enable all interrupts
@@ -163,7 +255,7 @@ void init()
     offset[Y] /= IMU_CAL;
     offset[Z] /= IMU_CAL;
     reset_led();
-    clear_lcd();
+    clc_uart();
 
     // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
@@ -175,108 +267,13 @@ void main()
     init();
     green_led();
 
-    clear_terminal_uart();
-
     while(1)
     {
         while(!sample_flag);
         sample_flag = 0;
-        count++;
 
         angle_calc();
-
-        short data = angle[ROLL] / UINT16_MAX;
-
-        if (angle[ROLL] < 0)
-        {
-            tx_uart(45);    //-
-            data *= -1;
-        }
-        else
-        {
-            tx_uart(43);    //+
-        }
-        tx_uart((data / 10) + 48);
-        data -= (data / 10) * 10;
-        tx_uart((data + 48));
-
-        tx_uart(32);
-        tx_uart(44);
-        tx_uart(32);
-
-        data = angle[PITCH] / UINT16_MAX;
-
-        if (angle[PITCH] < 0)
-        {
-            tx_uart(45);    //-
-            data *= -1;
-        }
-        else
-        {
-            tx_uart(43);    //+
-        }
-        tx_uart((data / 10) + 48);
-        data -= (data / 10) * 10;
-        tx_uart((data + 48));
-
-        tx_uart(32);
-        tx_uart(44);
-        tx_uart(32);
-
-        data = angle[YAW] / UINT16_MAX;
-
-        if (angle[YAW] < 0)
-        {
-            tx_uart(45);    //-
-            data *= -1;
-        }
-        else
-        {
-            tx_uart(43);    //+
-        }
-
-        tx_uart((data / 100) + 48);
-        data -= (data / 100) * 100;
-        tx_uart((data / 10) + 48);
-        data -= (data / 10) * 10;
-        tx_uart((data + 48));
-
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-        tx_uart(8);
-
-
-        if(count == -1)
-        {
-            clear_lcd();
-            count = 0;
-
-            write_string_lcd("ROLL:  ");
-            write_int_lcd(angle[ROLL] / UINT16_MAX);
-
-            write_string_lcd("\nPITCH: ");
-            write_int_lcd(angle[PITCH] / UINT16_MAX);
-            write_string_lcd("      ");
-
-            /*
-            write_string_lcd("\nYAW:  ");
-            write_int_lcd(angle[YAW] / UINT16_MAX);
-            write_string_lcd("       ");
-            */
-        }
+        angle_print();
     }
 }
 

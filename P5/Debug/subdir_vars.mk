@@ -13,7 +13,6 @@ C_SRCS += \
 ../delay.c \
 ../esc.c \
 ../imu.c \
-../lcd.c \
 ../led.c \
 ../main.c \
 ../rc.c \
@@ -26,7 +25,6 @@ C_DEPS += \
 ./delay.d \
 ./esc.d \
 ./imu.d \
-./lcd.d \
 ./led.d \
 ./main.d \
 ./rc.d \
@@ -39,7 +37,6 @@ OBJS += \
 ./delay.obj \
 ./esc.obj \
 ./imu.obj \
-./lcd.obj \
 ./led.obj \
 ./main.obj \
 ./rc.obj \
@@ -52,7 +49,6 @@ OBJS__QUOTED += \
 "delay.obj" \
 "esc.obj" \
 "imu.obj" \
-"lcd.obj" \
 "led.obj" \
 "main.obj" \
 "rc.obj" \
@@ -65,7 +61,6 @@ C_DEPS__QUOTED += \
 "delay.d" \
 "esc.d" \
 "imu.d" \
-"lcd.d" \
 "led.d" \
 "main.d" \
 "rc.d" \
@@ -78,7 +73,6 @@ C_SRCS__QUOTED += \
 "../delay.c" \
 "../esc.c" \
 "../imu.c" \
-"../lcd.c" \
 "../led.c" \
 "../main.c" \
 "../rc.c" \

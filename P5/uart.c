@@ -17,6 +17,7 @@ void init_uart()
     EUSCI_A0->CTLW0 &= ~1;
     EUSCI_A0->IE |= BIT0;
 
+    // enable UART interrupts
     NVIC->ISER[0] = 1 << ((EUSCIA0_IRQn) & 31);
 }
 
@@ -40,12 +41,13 @@ unsigned char rx_uart()
     }
 }
 
-void clear_terminal_uart()
+// clear UART terminal
+void clc_uart()
 {
-    tx_uart(27);    //ESC
-    tx_uart(91);    //[
-    tx_uart(50);    //2
-    tx_uart(74);    //J
+    tx_uart(27);
+    tx_uart(91);
+    tx_uart(50);
+    tx_uart(74);
     tx_uart(27);
     tx_uart(91);
     tx_uart(72);

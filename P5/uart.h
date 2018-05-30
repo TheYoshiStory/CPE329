@@ -12,6 +12,6 @@
 void init_uart();
 void tx_uart(unsigned char data);
 unsigned char rx_uart();
-void clear_terminal_uart();
+void clc_uart();
 
 #endif
