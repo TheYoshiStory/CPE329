@@ -9,12 +9,31 @@
 
 #include "uart.h"
 
+#define P 0
+#define I 1
+#define D 2
+
+#define P_ROLL_GAIN 1
+#define I_ROLL_GAIN 0
+#define D_ROLL_GAIN 0
+
+#define P_PITCH_GAIN 1
+#define I_PITCH_GAIN 0
+#define D_PITCH_GAIN 0
+
+#define P_YAW_GAIN 1
+#define I_YAW_GAIN 0
+#define D_YAW_GAIN 0
+
 volatile char i2c_flag;
 volatile char sample_flag;
 volatile channel ch[6];
 
+int output[3][3];
 int offset[3];
 int angle[3];
+
+int prev[3];
 
 void i2c_write(unsigned char reg, unsigned char data)
 {
@@ -84,19 +103,19 @@ void angle_calc()
 
     // calculate angle based on accelerometer data
     accel_angle[ROLL] = ((atan2(accel_data[Y],sqrt((accel_data[X] * accel_data[X]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - ROLL_OFFSET) * UINT16_MAX;
-    accel_angle[PITCH] = ((atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX;
+    accel_angle[PITCH] = -1 * ((atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX;
 
     // calculate angle based on gyroscope data
     gyro_angle[ROLL] = angle[ROLL] + (gyro_data[X] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
-    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
-    gyro_angle[YAW] = gyro_data[Z] * UINT16_MAX / GYRO_SCALE;
+    gyro_angle[PITCH] = angle[PITCH] + (-1 * gyro_data[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
+    gyro_angle[YAW] = -1 * gyro_data[Z] * UINT16_MAX / GYRO_SCALE;
 
     // couple roll and pitch using yaw
     gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
     gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
 
     // check for receiver enable
-    if(1)
+    if(ch[4].pulse > RC_THRESH)
     {
         // combine gyroscope and accelerometer angles with a complementary filter
         angle[ROLL] = ALPHA * gyro_angle[ROLL] + (1 - ALPHA) * accel_angle[ROLL];
@@ -125,7 +144,7 @@ void angle_print()
     tx_uart(':');
     tx_uart(' ');
 
-    data = angle[ROLL] / UINT16_MAX;
+    data = (ch[0].pulse - angle[ROLL]) / UINT16_MAX;
 
     if(data < 0)
     {
@@ -154,7 +173,7 @@ void angle_print()
     tx_uart(':');
     tx_uart(' ');
 
-    data = angle[PITCH] / UINT16_MAX;
+    data = (ch[1].pulse - angle[PITCH]) / UINT16_MAX;
 
     if(data < 0)
     {
@@ -181,7 +200,7 @@ void angle_print()
     tx_uart(' ');
 
     // print yaw angular velocity
-    data = angle[YAW] / UINT16_MAX;
+    data = (ch[3].pulse - angle[YAW]) / UINT16_MAX;
 
     if(data < 0)
     {
@@ -261,24 +280,117 @@ void init()
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
 }
 
+int saturate(int val, int min, int max)
+{
+    if (val < min)
+    {
+        return min;
+    }
+    else if (val > max)
+    {
+        return max;
+    }
+    else
+    {
+        return val;
+    }
+}
+
+void receiver_calc()
+{
+    ch[0].set_point = ((ch[0].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
+    ch[1].set_point = ((ch[1].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
+    ch[2].set_point = (ch[2].pulse) / 8;
+    ch[3].set_point = ((ch[3].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
+    ch[4].set_point = ch[4].pulse;
+    ch[5].set_point = ch[5].pulse;
+}
+
+void pid_calc()
+{
+    int error[3];
+
+    if (ch[4].set_point > RC_THRESH)
+    {
+        error[ROLL] = ch[0].pulse - angle[ROLL];
+        error[PITCH] = ch[1].pulse - angle[PITCH];
+        error[YAW] = ch[3].pulse - angle[YAW];
+
+        output[P][ROLL] = P_ROLL_GAIN * error[ROLL];
+        output[P][PITCH] = P_PITCH_GAIN * error[PITCH];
+        output[P][YAW] = P_YAW_GAIN * error[YAW];
+
+        output[I][ROLL] += I_ROLL_GAIN * error[ROLL] / IMU_RATE;
+        output[I][ROLL] = saturate(output[I][ROLL], -1 * RC_MAX_ANGLE * UINT16_MAX * I_ROLL_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_ROLL_GAIN);
+        output[I][PITCH] += I_PITCH_GAIN * error[PITCH] / IMU_RATE;
+        output[I][PITCH] = saturate(output[I][PITCH], -1 * RC_MAX_ANGLE * UINT16_MAX * I_PITCH_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_PITCH_GAIN);
+        output[I][YAW] += I_YAW_GAIN * error[YAW] / IMU_RATE;
+        output[I][YAW] = saturate(output[I][YAW], -1 * RC_MAX_ANGLE * UINT16_MAX * I_YAW_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_YAW_GAIN);
+
+        output[D][ROLL] = D_ROLL_GAIN * (error[ROLL] - prev[ROLL]) * IMU_RATE;
+        output[D][PITCH] = D_PITCH_GAIN * (error[PITCH] - prev[PITCH]) * IMU_RATE;
+        output[D][YAW] = D_YAW_GAIN * (error[YAW] - prev[YAW]) * IMU_RATE;
+
+        prev[ROLL] = error[ROLL];
+        prev[PITCH] = error[PITCH];
+        prev[YAW] = error[YAW];
+    }
+    else
+    {
+        output[I][ROLL] = 0;
+        output[I][PITCH] = 0;
+        output[I][YAW] = 0;
+
+        prev[ROLL] = 0;
+        prev[PITCH] = 0;
+        prev[YAW] = 0;
+    }
+}
+
 // main program
 void main()
 {
     init();
     green_led();
+    int error[3];
+    int esc[4];
+
 
     while(1)
     {
         while(!sample_flag);
         sample_flag = 0;
 
+        receiver_calc();
         angle_calc();
+        pid_calc();
         //angle_print();
 
-        TIMER_A0->CCR[1] = ch[2].pulse;
-        TIMER_A0->CCR[2] = ch[2].pulse;
-        TIMER_A0->CCR[3] = ch[2].pulse;
-        TIMER_A0->CCR[4] = ch[2].pulse;
+        error[ROLL] = (2800 * (output[P][ROLL] + output[I][ROLL] + output[D][ROLL]) / 90 / UINT16_MAX);
+        error[PITCH] = (2800 * (output[P][PITCH] + output[I][PITCH] + output[D][PITCH]) / 90 / UINT16_MAX);
+        error[YAW] = (2800 * (output[P][YAW] + output[I][YAW] + output[D][YAW]) / 90 / UINT16_MAX);
+
+        //Normalize outputs
+        esc[LF] = saturate(ch[2].pulse + (error[ROLL]) + (error[PITCH]) + (error[YAW]), 3200, 6000);
+        esc[RF] = saturate(ch[2].pulse - (error[ROLL]) + (error[PITCH]) - (error[YAW]), 3200, 6000);
+        esc[LB] = saturate(ch[2].pulse - (error[ROLL]) - (error[PITCH]) + (error[YAW]), 3200, 6000);
+        esc[RB] = saturate(ch[2].pulse + (error[ROLL]) - (error[PITCH]) - (error[YAW]), 3200, 6000);
+
+        if (ch[4].pulse > RC_THRESH)
+        {
+            TIMER_A0->CCR[1] = esc[LF];
+            TIMER_A0->CCR[2] = esc[RF];
+            TIMER_A0->CCR[3] = esc[LB];
+            TIMER_A0->CCR[4] = esc[RB];
+        }
+        else
+        {
+            TIMER_A0->CCR[1] = 3000;
+            TIMER_A0->CCR[2] = 3000;
+            TIMER_A0->CCR[3] = 3000;
+            TIMER_A0->CCR[4] = 3000;
+        }
+
     }
 }
 
@@ -317,7 +429,15 @@ void ADC14_IRQHandler()
 // Timer32 interrupt service routine
 void T32_INT2_IRQHandler()
 {
-    alert_battery();
+    if (ch[5].pulse > RC_THRESH)
+    {
+        alert_battery();
+    }
+    else
+    {
+        BATTERY_CTRL->OUT &= ~BIT1;
+        TIMER32_2->INTCLR++;
+    }
 }
 
 // P3 interrupt service routine

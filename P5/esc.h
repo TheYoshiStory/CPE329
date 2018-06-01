@@ -8,6 +8,11 @@
  */
 #define ESC_CTRL P2
 
+#define RF 0
+#define LF 1
+#define LB 2
+#define RB 3
+
 void init_esc();
 
 #endif

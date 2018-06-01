@@ -42,7 +42,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[0].state && !(RC_CTRL->IN & BIT0))
         {
-            ch[0].pulse = (ch[0].time - TIMER32_1->VALUE) / 8;
+            ch[0].pulse = (ch[0].time - TIMER32_1->VALUE);
             ch[0].state = 0;
             RC_CTRL->IES &= ~BIT0;
         }
@@ -61,7 +61,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[1].state && !(RC_CTRL->IN & BIT2))
         {
-            ch[1].pulse = (ch[1].time - TIMER32_1->VALUE) / 8;
+            ch[1].pulse = (ch[1].time - TIMER32_1->VALUE);
             ch[1].state = 0;
             RC_CTRL->IES &= ~BIT2;
         }
@@ -80,7 +80,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[2].state && !(RC_CTRL->IN & BIT3))
         {
-            ch[2].pulse = (ch[2].time - TIMER32_1->VALUE) / 8;
+            ch[2].pulse = (ch[2].time - TIMER32_1->VALUE);
             ch[2].state = 0;
             RC_CTRL->IES &= ~BIT3;
         }
@@ -99,7 +99,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[3].state && !(RC_CTRL->IN & BIT5))
         {
-            ch[3].pulse = (ch[3].time - TIMER32_1->VALUE) / 8;
+            ch[3].pulse = (ch[3].time - TIMER32_1->VALUE);
             ch[3].state = 0;
             RC_CTRL->IES &= ~BIT5;
         }
@@ -118,7 +118,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[4].state && !(RC_CTRL->IN & BIT6))
         {
-            ch[4].pulse = (ch[4].time - TIMER32_1->VALUE) / 8;
+            ch[4].pulse = (ch[4].time - TIMER32_1->VALUE);
             ch[4].state = 0;
             RC_CTRL->IES &= ~BIT6;
         }
@@ -137,7 +137,7 @@ void process_rc(volatile channel *ch)
         }
         else if(ch[5].state && !(RC_CTRL->IN & BIT7))
         {
-            ch[5].pulse = (ch[5].time - TIMER32_1->VALUE) / 8;
+            ch[5].pulse = (ch[5].time - TIMER32_1->VALUE);
             ch[5].state = 0;
             RC_CTRL->IES &= ~BIT7;
         }
