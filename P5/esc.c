@@ -16,8 +16,8 @@ void init_esc()
     TIMER_A0->CCTL[3] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCTL[4] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCR[0] = 60000;
-    TIMER_A0->CCR[1] = 3000;
-    TIMER_A0->CCR[2] = 3000;
-    TIMER_A0->CCR[3] = 3000;
-    TIMER_A0->CCR[4] = 3000;
+    TIMER_A0->CCR[1] = 6000;
+    TIMER_A0->CCR[2] = 6000;
+    TIMER_A0->CCR[3] = 6000;
+    TIMER_A0->CCR[4] = 6000;
 }

@@ -227,7 +227,7 @@ void init()
     init_esc();
 
     // use UART for debugging
-    init_uart();
+    //init_uart();
 
     // enable all interrupts
     __enable_irq();
@@ -273,7 +273,12 @@ void main()
         sample_flag = 0;
 
         angle_calc();
-        angle_print();
+        //angle_print();
+
+        TIMER_A0->CCR[1] = ch[2].pulse;
+        TIMER_A0->CCR[2] = ch[2].pulse;
+        TIMER_A0->CCR[3] = ch[2].pulse;
+        TIMER_A0->CCR[4] = ch[2].pulse;
     }
 }
 

@@ -44,7 +44,7 @@
 #define YAW 2
 
 #define ROLL_OFFSET 0
-#define PITCH_OFFSET 0
+#define PITCH_OFFSET 2
 
 #define ACCEL_SCALE 417.959
 #define GYRO_SCALE 65.500
