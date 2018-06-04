@@ -14,7 +14,5 @@
 #define SCALE 16383
 
 void init_battery();
-void read_battery();
-void alert_battery();
 
 #endif

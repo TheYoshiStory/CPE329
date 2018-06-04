@@ -7,11 +7,7 @@
 #include "esc.h"
 #include <math.h>
 
-#include "uart.h"
-
-#define P 0
-#define I 1
-#define D 2
+#define MAX_ANGLE 45
 
 #define P_ROLL_GAIN 1
 #define I_ROLL_GAIN 0
@@ -29,11 +25,29 @@ volatile char i2c_flag;
 volatile char sample_flag;
 volatile channel ch[6];
 
-int output[3][3];
-int offset[3];
 int angle[3];
+int offset[3];
 
+int pid[3];
+int sum[3];
 int prev[3];
+
+// saturate a value between two extrema
+int saturate(int val, int min, int max)
+{
+    if(val < min)
+    {
+        return(min);
+    }
+    else if(val > max)
+    {
+        return(max);
+    }
+    else
+    {
+        return(val);
+    }
+}
 
 void i2c_write(unsigned char reg, unsigned char data)
 {
@@ -83,6 +97,17 @@ unsigned char i2c_read(unsigned char reg)
     return(EUSCI_B0->RXBUF & 0xFF);
 }
 
+// calculate input setpoint values
+void input_calc()
+{
+    ch[0].setpoint = (ch[0].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
+    ch[1].setpoint = (ch[1].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
+    ch[2].setpoint = ch[2].pulse / 8;
+    ch[3].setpoint = (ch[3].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
+    ch[4].setpoint = ch[4].pulse;
+    ch[5].setpoint = ch[5].pulse;
+}
+
 // calculate angles using accelerometer and gyroscope data
 void angle_calc()
 {
@@ -115,7 +140,7 @@ void angle_calc()
     gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
 
     // check for receiver enable
-    if(ch[4].pulse > RC_THRESH)
+    if(ch[4].setpoint > RC_MID)
     {
         // combine gyroscope and accelerometer angles with a complementary filter
         angle[ROLL] = ALPHA * gyro_angle[ROLL] + (1 - ALPHA) * accel_angle[ROLL];
@@ -131,98 +156,60 @@ void angle_calc()
     }
 }
 
-// print angle values to UART console for debugging
-void angle_print()
+void pid_calc()
 {
-    short data;
+    int error[3];
+    int p[3];
+    int i[3];
+    int d[3];
 
-    // print roll angle
-    tx_uart('R');
-    tx_uart('O');
-    tx_uart('L');
-    tx_uart('L');
-    tx_uart(':');
-    tx_uart(' ');
-
-    data = (ch[0].pulse - angle[ROLL]) / UINT16_MAX;
-
-    if(data < 0)
+    if(ch[4].setpoint > RC_MID)
     {
-        tx_uart('-');
-        data *= -1;
+        // calculate error signals
+        error[ROLL] = ch[0].pulse - angle[ROLL];
+        error[PITCH] = ch[1].pulse - angle[PITCH];
+        error[YAW] = ch[3].pulse - angle[YAW];
+
+        // proportional controller calculations
+        p[ROLL] = error[ROLL] * P_ROLL_GAIN;
+        p[PITCH] = error[PITCH] * P_PITCH_GAIN;
+        p[YAW] = error[YAW] * P_YAW_GAIN;
+
+        // accumulate error and saturate
+        sum[ROLL] = saturate(sum[ROLL]+error[ROLL],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
+        sum[PITCH] = saturate(sum[PITCH]+error[PITCH],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
+        sum[YAW] = saturate(sum[YAW]+error[YAW],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
+
+        // integral controller calculations
+        i[ROLL] = sum[ROLL] * I_ROLL_GAIN / IMU_RATE;
+        i[PITCH] = sum[PITCH] * I_PITCH_GAIN / IMU_RATE;
+        i[YAW] = sum[YAW] * I_YAW_GAIN / IMU_RATE;
+
+        // derivative controller calculations
+        d[ROLL] = (error[ROLL] - prev[ROLL]) * D_ROLL_GAIN* IMU_RATE;
+        d[PITCH] = (error[PITCH] - prev[PITCH]) * D_PITCH_GAIN * IMU_RATE;
+        d[YAW] = (error[YAW] - prev[YAW]) * D_YAW_GAIN * IMU_RATE;
+
+        // save previous error values
+        prev[ROLL] = error[ROLL];
+        prev[PITCH] = error[PITCH];
+        prev[YAW] = error[YAW];
+
+        // calculate PID outputs
+        pid[ROLL] = p[ROLL] + i[ROLL] + d[ROLL];
+        pid[PITCH] = p[PITCH] + i[PITCH] + d[PITCH];
+        pid[YAW] = p[YAW] + i[YAW] + d[YAW];
     }
     else
     {
-        tx_uart('+');
+        // initialize accumulated and previous errors
+        sum[ROLL] = 0;
+        sum[PITCH] = 0;
+        sum[YAW] = 0;
+        prev[ROLL] = 0;
+        prev[PITCH] = 0;
+        prev[YAW] = 0;
     }
-
-    tx_uart(data / 10 + 48);
-    data -= data / 10 * 10;
-    tx_uart(data + 48);
-    tx_uart('d');
-    tx_uart('e');
-    tx_uart('g');
-    tx_uart(0x09);
-
-    // print pitch angle
-    tx_uart('P');
-    tx_uart('I');
-    tx_uart('T');
-    tx_uart('C');
-    tx_uart('H');
-    tx_uart(':');
-    tx_uart(' ');
-
-    data = (ch[1].pulse - angle[PITCH]) / UINT16_MAX;
-
-    if(data < 0)
-    {
-        tx_uart('-');
-        data *= -1;
-    }
-    else
-    {
-        tx_uart('+');
-    }
-
-    tx_uart(data / 10 + 48);
-    data -= data / 10 * 10;
-    tx_uart(data + 48);
-    tx_uart('d');
-    tx_uart('e');
-    tx_uart('g');
-    tx_uart(0x09);
-
-    tx_uart('Y');
-    tx_uart('A');
-    tx_uart('W');
-    tx_uart(':');
-    tx_uart(' ');
-
-    // print yaw angular velocity
-    data = (ch[3].pulse - angle[YAW]) / UINT16_MAX;
-
-    if(data < 0)
-    {
-        tx_uart('-');
-        data *= -1;
-    }
-    else
-    {
-        tx_uart('+');
-    }
-
-    tx_uart(data / 100 + 48);
-    data -= data / 100 * 100;
-    tx_uart(data / 10 + 48);
-    data -= data / 10 * 10;
-    tx_uart(data + 48);
-    tx_uart('d');
-    tx_uart('e');
-    tx_uart('g');
-    tx_uart('/');
-    tx_uart('s');
-    tx_uart(0x0D);
 }
 
 // system initialization
@@ -237,16 +224,21 @@ void init()
     i2c_flag = 0;
     sample_flag = 0;
 
+    // initialize channel states to low
+    ch[0].state = 0;
+    ch[1].state = 0;
+    ch[2].state = 0;
+    ch[3].state = 0;
+    ch[4].state = 0;
+    ch[5].state = 0;
+
     // initialize components
     init_dco();
     init_led();
     init_imu();
     init_battery();
-    init_rc(ch);
+    init_rc();
     init_esc();
-
-    // use UART for debugging
-    //init_uart();
 
     // enable all interrupts
     __enable_irq();
@@ -274,86 +266,19 @@ void init()
     offset[Y] /= IMU_CAL;
     offset[Z] /= IMU_CAL;
     reset_led();
-    clc_uart();
 
     // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
 }
 
-int saturate(int val, int min, int max)
-{
-    if (val < min)
-    {
-        return min;
-    }
-    else if (val > max)
-    {
-        return max;
-    }
-    else
-    {
-        return val;
-    }
-}
-
-void receiver_calc()
-{
-    ch[0].set_point = ((ch[0].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
-    ch[1].set_point = ((ch[1].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
-    ch[2].set_point = (ch[2].pulse) / 8;
-    ch[3].set_point = ((ch[3].pulse * RC_MAX_ANGLE / 12000) - 135) * UINT16_MAX;
-    ch[4].set_point = ch[4].pulse;
-    ch[5].set_point = ch[5].pulse;
-}
-
-void pid_calc()
-{
-    int error[3];
-
-    if (ch[4].set_point > RC_THRESH)
-    {
-        error[ROLL] = ch[0].pulse - angle[ROLL];
-        error[PITCH] = ch[1].pulse - angle[PITCH];
-        error[YAW] = ch[3].pulse - angle[YAW];
-
-        output[P][ROLL] = P_ROLL_GAIN * error[ROLL];
-        output[P][PITCH] = P_PITCH_GAIN * error[PITCH];
-        output[P][YAW] = P_YAW_GAIN * error[YAW];
-
-        output[I][ROLL] += I_ROLL_GAIN * error[ROLL] / IMU_RATE;
-        output[I][ROLL] = saturate(output[I][ROLL], -1 * RC_MAX_ANGLE * UINT16_MAX * I_ROLL_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_ROLL_GAIN);
-        output[I][PITCH] += I_PITCH_GAIN * error[PITCH] / IMU_RATE;
-        output[I][PITCH] = saturate(output[I][PITCH], -1 * RC_MAX_ANGLE * UINT16_MAX * I_PITCH_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_PITCH_GAIN);
-        output[I][YAW] += I_YAW_GAIN * error[YAW] / IMU_RATE;
-        output[I][YAW] = saturate(output[I][YAW], -1 * RC_MAX_ANGLE * UINT16_MAX * I_YAW_GAIN, RC_MAX_ANGLE * UINT16_MAX * I_YAW_GAIN);
-
-        output[D][ROLL] = D_ROLL_GAIN * (error[ROLL] - prev[ROLL]) * IMU_RATE;
-        output[D][PITCH] = D_PITCH_GAIN * (error[PITCH] - prev[PITCH]) * IMU_RATE;
-        output[D][YAW] = D_YAW_GAIN * (error[YAW] - prev[YAW]) * IMU_RATE;
-
-        prev[ROLL] = error[ROLL];
-        prev[PITCH] = error[PITCH];
-        prev[YAW] = error[YAW];
-    }
-    else
-    {
-        output[I][ROLL] = 0;
-        output[I][PITCH] = 0;
-        output[I][YAW] = 0;
-
-        prev[ROLL] = 0;
-        prev[PITCH] = 0;
-        prev[YAW] = 0;
-    }
-}
-
 // main program
 void main()
 {
+    int esc[4];
+
     init();
     green_led();
-    int error[3];
-    int esc[4];
+    //int error[3];
 
 
     while(1)
@@ -361,36 +286,36 @@ void main()
         while(!sample_flag);
         sample_flag = 0;
 
-        receiver_calc();
+        input_calc();
         angle_calc();
         pid_calc();
-        //angle_print();
 
-        error[ROLL] = (2800 * (output[P][ROLL] + output[I][ROLL] + output[D][ROLL]) / 90 / UINT16_MAX);
-        error[PITCH] = (2800 * (output[P][PITCH] + output[I][PITCH] + output[D][PITCH]) / 90 / UINT16_MAX);
-        error[YAW] = (2800 * (output[P][YAW] + output[I][YAW] + output[D][YAW]) / 90 / UINT16_MAX);
+        pid[ROLL] = 2800 * pid[ROLL] / 90 / UINT16_MAX;
+        pid[PITCH] = 2800 * pid[PITCH] / 90 / UINT16_MAX;
+        pid[YAW] = 2800 * pid[YAW] / 90 / UINT16_MAX;
 
-        //Normalize outputs
-        esc[LF] = saturate(ch[2].pulse + (error[ROLL]) + (error[PITCH]) + (error[YAW]), 3200, 6000);
-        esc[RF] = saturate(ch[2].pulse - (error[ROLL]) + (error[PITCH]) - (error[YAW]), 3200, 6000);
-        esc[LB] = saturate(ch[2].pulse - (error[ROLL]) - (error[PITCH]) + (error[YAW]), 3200, 6000);
-        esc[RB] = saturate(ch[2].pulse + (error[ROLL]) - (error[PITCH]) - (error[YAW]), 3200, 6000);
 
-        if (ch[4].pulse > RC_THRESH)
+        esc[RF] = ch[2].pulse + pid[ROLL] + pid[PITCH] + pid[YAW];
+        esc[LF] = ch[2].pulse - pid[ROLL] + pid[PITCH] - pid[YAW];
+        esc[LB] = ch[2].pulse - pid[ROLL] - pid[PITCH] + pid[YAW];
+        esc[RB] = ch[2].pulse + pid[ROLL] - pid[PITCH] - pid[YAW];
+
+        if(ch[4].pulse > RC_MID)
         {
-            TIMER_A0->CCR[1] = esc[LF];
-            TIMER_A0->CCR[2] = esc[RF];
-            TIMER_A0->CCR[3] = esc[LB];
-            TIMER_A0->CCR[4] = esc[RB];
+            // operate motors within hardware limits
+            TIMER_A0->CCR[RF+1] = saturate(esc[RF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LF+1] = saturate(esc[LF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LB+1] = saturate(esc[LB],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[RB+1] = saturate(esc[RB],ESC_IDLE,ESC_MAX);
         }
         else
         {
-            TIMER_A0->CCR[1] = 3000;
-            TIMER_A0->CCR[2] = 3000;
-            TIMER_A0->CCR[3] = 3000;
-            TIMER_A0->CCR[4] = 3000;
+            // keep motors off
+            TIMER_A0->CCR[RF+1] = ESC_MIN;
+            TIMER_A0->CCR[LF+1] = ESC_MIN;
+            TIMER_A0->CCR[LB+1] = ESC_MIN;
+            TIMER_A0->CCR[RB+1] = ESC_MIN;
         }
-
     }
 }
 
@@ -423,25 +348,144 @@ void TA1_0_IRQHandler()
 // ADC14 interrupt service routine
 void ADC14_IRQHandler()
 {
-    read_battery();
+    if(((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD) && (ch[5].setpoint > RC_MID))
+    {
+        // start Timer32
+        TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
+    }
+    else
+    {
+        // stop Timer32 and turn off buzzer
+        TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
+        BATTERY_CTRL->OUT &= ~BIT1;
+    }
+
+    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
 }
 
 // Timer32 interrupt service routine
 void T32_INT2_IRQHandler()
 {
-    if (ch[5].pulse > RC_THRESH)
-    {
-        alert_battery();
-    }
-    else
-    {
-        BATTERY_CTRL->OUT &= ~BIT1;
-        TIMER32_2->INTCLR++;
-    }
+    // toggle buzzer and clear Timer32 interrupt
+    BATTERY_CTRL->OUT ^= BIT1;
+    TIMER32_2->INTCLR++;
 }
 
 // P3 interrupt service routine
 void PORT3_IRQHandler()
 {
-    process_rc(ch);
+    // channel 1
+    if(RC_CTRL->IFG & BIT0)
+    {
+        if(!ch[0].state && (RC_CTRL->IN & BIT0))
+        {
+            TIMER32_1->LOAD = UINT32_MAX;
+            ch[0].time = TIMER32_1->VALUE;
+            ch[0].state = 1;
+            RC_CTRL->IES |= BIT0;
+        }
+        else if(ch[0].state && !(RC_CTRL->IN & BIT0))
+        {
+            ch[0].pulse = ch[0].time - TIMER32_1->VALUE;
+            ch[0].state = 0;
+            RC_CTRL->IES &= ~BIT0;
+        }
+
+        RC_CTRL->IFG &= ~BIT0;
+    }
+
+    // channel 2
+    if(RC_CTRL->IFG & BIT2)
+    {
+        if(!ch[1].state && (RC_CTRL->IN & BIT2))
+        {
+            ch[1].time = TIMER32_1->VALUE;
+            ch[1].state = 1;
+            RC_CTRL->IES |= BIT2;
+        }
+        else if(ch[1].state && !(RC_CTRL->IN & BIT2))
+        {
+            ch[1].pulse = ch[1].time - TIMER32_1->VALUE;
+            ch[1].state = 0;
+            RC_CTRL->IES &= ~BIT2;
+        }
+
+        RC_CTRL->IFG &= ~BIT2;
+    }
+
+    // channel 3
+    if(RC_CTRL->IFG & BIT3)
+    {
+        if(!ch[2].state && (RC_CTRL->IN & BIT3))
+        {
+            ch[2].time = TIMER32_1->VALUE;
+            ch[2].state = 1;
+            RC_CTRL->IES |= BIT3;
+        }
+        else if(ch[2].state && !(RC_CTRL->IN & BIT3))
+        {
+            ch[2].pulse = ch[2].time - TIMER32_1->VALUE;
+            ch[2].state = 0;
+            RC_CTRL->IES &= ~BIT3;
+        }
+
+        RC_CTRL->IFG &= ~BIT3;
+    }
+
+    // channel 4
+    if(RC_CTRL->IFG & BIT5)
+    {
+        if(!ch[3].state && (RC_CTRL->IN & BIT5))
+        {
+            ch[3].time = TIMER32_1->VALUE;
+            ch[3].state = 1;
+            RC_CTRL->IES |= BIT5;
+        }
+        else if(ch[3].state && !(RC_CTRL->IN & BIT5))
+        {
+            ch[3].pulse = ch[3].time - TIMER32_1->VALUE;
+            ch[3].state = 0;
+            RC_CTRL->IES &= ~BIT5;
+        }
+
+        RC_CTRL->IFG &= ~BIT5;
+    }
+
+    // channel 5
+    if(RC_CTRL->IFG & BIT6)
+    {
+        if(!ch[4].state && (RC_CTRL->IN & BIT6))
+        {
+            ch[4].time = TIMER32_1->VALUE;
+            ch[4].state = 1;
+            RC_CTRL->IES |= BIT6;
+        }
+        else if(ch[4].state && !(RC_CTRL->IN & BIT6))
+        {
+            ch[4].pulse = ch[4].time - TIMER32_1->VALUE;
+            ch[4].state = 0;
+            RC_CTRL->IES &= ~BIT6;
+        }
+
+        RC_CTRL->IFG &= ~BIT6;
+    }
+
+    // channel 6
+    if(RC_CTRL->IFG & BIT7)
+    {
+        if(!ch[5].state && (RC_CTRL->IN & BIT7))
+        {
+            ch[5].time = TIMER32_1->VALUE;
+            ch[5].state = 1;
+            RC_CTRL->IES |= BIT7;
+        }
+        else if(ch[5].state && !(RC_CTRL->IN & BIT7))
+        {
+            ch[5].pulse = ch[5].time - TIMER32_1->VALUE;
+            ch[5].state = 0;
+            RC_CTRL->IES &= ~BIT7;
+        }
+
+        RC_CTRL->IFG &= ~BIT7;
+    }
 }

@@ -7,12 +7,10 @@
  *  ---------------------------------------------
  */
 #define RC_CTRL P3
-#define RC_THRESH 36000
-#define RC_MAX_ANGLE 45
-#define RC_MIN_ANGLE 0
-#define RC_MIN 24000
-#define RC_MAX 48000
 
+#define RC_MAX 48000
+#define RC_MID 36000
+#define RC_MIN 24000
 
 /*
  *  ----------------------
@@ -29,11 +27,10 @@ typedef struct
     unsigned char state;
     unsigned int time;
     unsigned short pulse;
-    int set_point;
+    int setpoint;
 }
 channel;
 
-void init_rc(volatile channel *ch);
-void process_rc(volatile channel *ch);
+void init_rc();
 
 #endif
