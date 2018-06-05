@@ -7,6 +7,9 @@
 #include "battery.h"
 #include <math.h>
 
+// ----------------------------------------------------------------------------
+// -- CONSTANTS ---------------------------------------------------------------
+// ----------------------------------------------------------------------------
 #define INPUT_SCALE 8.0
 #define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
@@ -22,7 +25,12 @@
 #define P_YAW_GAIN 1.0      // 5.6
 #define I_YAW_GAIN 0.0      // 0.8
 #define D_YAW_GAIN 0.0      // 0.2
+// ----------------------------------------------------------------------------
 
+
+// ----------------------------------------------------------------------------
+// -- GLOBAL VARIABLES --------------------------------------------------------
+// ----------------------------------------------------------------------------
 volatile char i2c_flag;
 volatile char sample_flag;
 volatile channel ch[6];
@@ -35,10 +43,15 @@ float sum[3];
 float prev[3];
 
 float esc[4];
+// ----------------------------------------------------------------------------
 
-// saturate a value between two extrema
+
+// ----------------------------------------------------------------------------
+// -- UTILITY FUNCTIONS -------------------------------------------------------
+// ----------------------------------------------------------------------------
 float saturate(float val, float min, float max)
 {
+    // saturate input between two extrema
     if(val < min)
     {
         return(min);
@@ -53,7 +66,6 @@ float saturate(float val, float min, float max)
     }
 }
 
-// read a byte over I2C
 unsigned char i2c_read(unsigned char reg)
 {
     // set transmit mode and send START condition
@@ -81,7 +93,6 @@ unsigned char i2c_read(unsigned char reg)
     return(EUSCI_B0->RXBUF & 0xFF);
 }
 
-// write a byte over I2C
 void i2c_write(unsigned char reg, unsigned char data)
 {
     // set transmit mode and send START condition
@@ -103,8 +114,12 @@ void i2c_write(unsigned char reg, unsigned char data)
     // send STOP condition
     EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;
 }
+// ----------------------------------------------------------------------------
 
-// calculate input setpoint values
+
+// ----------------------------------------------------------------------------
+// -- CONTROLLER FUNCTIONS ----------------------------------------------------
+// ----------------------------------------------------------------------------
 void input_calc()
 {
     // linearize roll, pitch, and yaw to be between -MAX_ANGLE and MAX_ANGLE
@@ -120,7 +135,6 @@ void input_calc()
     ch[5].setpoint = ch[5].pulse;
 }
 
-// calculate angles using accelerometer and gyroscope data
 void angle_calc()
 {
     short accel_data[3];
@@ -168,7 +182,6 @@ void angle_calc()
     }
 }
 
-// calculate PID controller output
 void pid_calc()
 {
     float error[3];
@@ -230,7 +243,6 @@ void pid_calc()
     }
 }
 
-// calculate ESC outputs
 void output_calc()
 {
     // use throttle as base input
@@ -239,8 +251,12 @@ void output_calc()
     esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
     esc[RB] = ch[2].setpoint - pid[ROLL] + pid[PITCH] - pid[YAW];
 }
+// ----------------------------------------------------------------------------
 
-// main program
+
+// ----------------------------------------------------------------------------
+// -- MAIN PROGRAM ------------------------------------------------------------
+// ----------------------------------------------------------------------------
 void main()
 {
     int i;
@@ -339,8 +355,12 @@ void main()
         }
     }
 }
+// ----------------------------------------------------------------------------
 
-// P3 interrupt service routine
+
+// ----------------------------------------------------------------------------
+// -- INTERRUPT SERVICE ROUTINES ----------------------------------------------
+// ----------------------------------------------------------------------------
 void PORT3_IRQHandler()
 {
     // channel 1
@@ -459,7 +479,6 @@ void PORT3_IRQHandler()
     }
 }
 
-// I2C interrupt service routine
 void EUSCIB0_IRQHandler()
 {
     // check if byte was successfully transmitted
@@ -477,7 +496,6 @@ void EUSCIB0_IRQHandler()
     }
 }
 
-// TimerA interrupt service routine
 void TA1_0_IRQHandler()
 {
     // set sample flag and clear interrupt flag
@@ -485,7 +503,6 @@ void TA1_0_IRQHandler()
     TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 }
 
-// ADC14 interrupt service routine
 void ADC14_IRQHandler()
 {
     if(((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD) && (ch[5].setpoint > RC_MID))
@@ -504,7 +521,6 @@ void ADC14_IRQHandler()
     ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
 }
 
-// Timer32 interrupt service routine
 void T32_INT2_IRQHandler()
 {
     //red_led(); //???
@@ -513,3 +529,4 @@ void T32_INT2_IRQHandler()
     BATTERY_CTRL->OUT ^= BIT1;
     TIMER32_2->INTCLR++;
 }
+// ----------------------------------------------------------------------------
