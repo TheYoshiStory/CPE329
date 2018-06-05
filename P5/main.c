@@ -8,7 +8,7 @@
 #include <math.h>
 
 #define INPUT_SCALE 8.0
-#define OUTPUT_SCALE 3000.0
+#define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
 
 #define P_ROLL_GAIN 1.0     // 3.2
@@ -33,6 +33,8 @@ float offset[3];
 float pid[3];
 float sum[3];
 float prev[3];
+
+float esc[4];
 
 // saturate a value between two extrema
 float saturate(float val, float min, float max)
@@ -228,8 +230,18 @@ void pid_calc()
     }
 }
 
-// system initialization
-void init()
+// calculate ESC outputs
+void output_calc()
+{
+    // use throttle as base input
+    esc[RF] = ch[2].setpoint - pid[ROLL] - pid[PITCH] + pid[YAW];
+    esc[LF] = ch[2].setpoint + pid[ROLL] - pid[PITCH] - pid[YAW];
+    esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
+    esc[RB] = ch[2].setpoint - pid[ROLL] + pid[PITCH] - pid[YAW];
+}
+
+// main program
+void main()
 {
     int i;
 
@@ -290,14 +302,6 @@ void init()
 
     // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
-}
-
-// main program
-void main()
-{
-    float esc[4];
-
-    init();
 
     while(1)
     {
@@ -307,11 +311,7 @@ void main()
         input_calc();
         angle_calc();
         pid_calc();
-
-        esc[RF] = ch[2].setpoint - pid[ROLL] - pid[PITCH] + pid[YAW];
-        esc[LF] = ch[2].setpoint + pid[ROLL] - pid[PITCH] - pid[YAW];
-        esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
-        esc[RB] = ch[2].setpoint - pid[ROLL] + pid[PITCH] - pid[YAW];
+        output_calc();
 
         if(ch[4].setpoint > RC_MID)
         {
