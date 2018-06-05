@@ -27,7 +27,7 @@ typedef struct
     unsigned char state;
     unsigned int time;
     unsigned short pulse;
-    int setpoint;
+    float setpoint;
 }
 channel;
 

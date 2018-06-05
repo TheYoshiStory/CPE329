@@ -17,8 +17,7 @@ C_SRCS += \
 ../main.c \
 ../rc.c \
 ../startup_msp432p401r_ccs.c \
-../system_msp432p401r.c \
-../uart.c 
+../system_msp432p401r.c 
 
 C_DEPS += \
 ./battery.d \
@@ -29,8 +28,7 @@ C_DEPS += \
 ./main.d \
 ./rc.d \
 ./startup_msp432p401r_ccs.d \
-./system_msp432p401r.d \
-./uart.d 
+./system_msp432p401r.d 
 
 OBJS += \
 ./battery.obj \
@@ -41,8 +39,7 @@ OBJS += \
 ./main.obj \
 ./rc.obj \
 ./startup_msp432p401r_ccs.obj \
-./system_msp432p401r.obj \
-./uart.obj 
+./system_msp432p401r.obj 
 
 OBJS__QUOTED += \
 "battery.obj" \
@@ -53,8 +50,7 @@ OBJS__QUOTED += \
 "main.obj" \
 "rc.obj" \
 "startup_msp432p401r_ccs.obj" \
-"system_msp432p401r.obj" \
-"uart.obj" 
+"system_msp432p401r.obj" 
 
 C_DEPS__QUOTED += \
 "battery.d" \
@@ -65,8 +61,7 @@ C_DEPS__QUOTED += \
 "main.d" \
 "rc.d" \
 "startup_msp432p401r_ccs.d" \
-"system_msp432p401r.d" \
-"uart.d" 
+"system_msp432p401r.d" 
 
 C_SRCS__QUOTED += \
 "../battery.c" \
@@ -77,7 +72,6 @@ C_SRCS__QUOTED += \
 "../main.c" \
 "../rc.c" \
 "../startup_msp432p401r_ccs.c" \
-"../system_msp432p401r.c" \
-"../uart.c" 
+"../system_msp432p401r.c" 
 
 

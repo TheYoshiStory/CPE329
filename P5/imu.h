@@ -44,13 +44,13 @@
 #define YAW 2
 
 #define ROLL_OFFSET 0
-#define PITCH_OFFSET 2
+#define PITCH_OFFSET 0
 
 #define ACCEL_SCALE 417.959
 #define GYRO_SCALE 65.500
 
 #define ALPHA  0.995
-#define BETA 0.100
+#define BETA 0.800
 
 void init_imu();
 

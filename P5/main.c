@@ -1,46 +1,41 @@
 #include "msp.h"
 #include "delay.h"
 #include "led.h"
+#include "esc.h"
+#include "rc.h"
 #include "imu.h"
 #include "battery.h"
-#include "rc.h"
-#include "esc.h"
 #include <math.h>
 
-#define MAX_ANGLE 90
+#define INPUT_SCALE 8.0
+#define OUTPUT_SCALE 3000.0
+#define MAX_ANGLE 90.0
 
-#define P_ROLL_GAIN 10000
-#define I_ROLL_GAIN 0
-#define D_ROLL_GAIN 0
+#define P_ROLL_GAIN 1.0     // 3.2
+#define I_ROLL_GAIN 0.1     // 1.2
+#define D_ROLL_GAIN 0.0     // 1.8
 
-#define P_PITCH_GAIN 10000
-#define I_PITCH_GAIN 0
-#define D_PITCH_GAIN 0
+#define P_PITCH_GAIN 1.0    // 3.2
+#define I_PITCH_GAIN 0.1    // 1.2
+#define D_PITCH_GAIN 0.0    // 1.8
 
-#define P_YAW_GAIN 0
-#define I_YAW_GAIN 0
-#define D_YAW_GAIN 0
+#define P_YAW_GAIN 1.0      // 5.6
+#define I_YAW_GAIN 0.0      // 0.8
+#define D_YAW_GAIN 0.0      // 0.2
 
 volatile char i2c_flag;
 volatile char sample_flag;
 volatile channel ch[6];
 
-int angle[3];
-int offset[3];
+float angle[3];
+float offset[3];
 
-int accel_angle[3];
-int gyro_angle[3];
-
-int pid[3];
-int sum[3];
-int prev[3];
-
-int error[3];
-int p[3];
-
+float pid[3];
+float sum[3];
+float prev[3];
 
 // saturate a value between two extrema
-int saturate(int val, int min, int max)
+float saturate(float val, float min, float max)
 {
     if(val < min)
     {
@@ -56,28 +51,7 @@ int saturate(int val, int min, int max)
     }
 }
 
-void i2c_write(unsigned char reg, unsigned char data)
-{
-    // set transmit mode and send START condition
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;
-    while(!i2c_flag);
-    i2c_flag = 0;
-
-    // send register address
-    EUSCI_B0->TXBUF = reg;
-    while(!i2c_flag);
-    i2c_flag = 0;
-
-    // send register data
-    EUSCI_B0->TXBUF = data;
-    while(!i2c_flag);
-    i2c_flag = 0;
-
-    // send STOP condition
-    EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;
-}
-
+// read a byte over I2C
 unsigned char i2c_read(unsigned char reg)
 {
     // set transmit mode and send START condition
@@ -101,16 +75,45 @@ unsigned char i2c_read(unsigned char reg)
     while(!i2c_flag);
     i2c_flag = 0;
 
+    // return data in buffer
     return(EUSCI_B0->RXBUF & 0xFF);
+}
+
+// write a byte over I2C
+void i2c_write(unsigned char reg, unsigned char data)
+{
+    // set transmit mode and send START condition
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;
+    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;
+    while(!i2c_flag);
+    i2c_flag = 0;
+
+    // send register address
+    EUSCI_B0->TXBUF = reg;
+    while(!i2c_flag);
+    i2c_flag = 0;
+
+    // send register data
+    EUSCI_B0->TXBUF = data;
+    while(!i2c_flag);
+    i2c_flag = 0;
+
+    // send STOP condition
+    EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;
 }
 
 // calculate input setpoint values
 void input_calc()
 {
-    ch[0].setpoint = (ch[0].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
-    ch[1].setpoint = (ch[1].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
-    ch[2].setpoint = ch[2].pulse / 8;
-    ch[3].setpoint = (ch[3].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
+    // linearize roll, pitch, and yaw to be between -MAX_ANGLE and MAX_ANGLE
+    ch[0].setpoint = MAX_ANGLE * (ch[0].pulse - RC_MID) / (RC_MAX - RC_MID);
+    ch[1].setpoint = MAX_ANGLE * (ch[1].pulse - RC_MID) / (RC_MAX - RC_MID);
+    ch[3].setpoint = MAX_ANGLE * (ch[3].pulse - RC_MID) / (RC_MAX - RC_MID);
+
+    // put throttle input on same scale as ESC inputs
+    ch[2].setpoint = ch[2].pulse / INPUT_SCALE;
+
+    // use raw values for switch inputs
     ch[4].setpoint = ch[4].pulse;
     ch[5].setpoint = ch[5].pulse;
 }
@@ -120,7 +123,8 @@ void angle_calc()
 {
     short accel_data[3];
     short gyro_data[3];
-
+    float accel_angle[3];
+    float gyro_angle[3];
 
     // read accelerometer (X,Y,Z) values
     accel_data[X] = (i2c_read(ACCEL_XOUT_H) << 8) | i2c_read(ACCEL_XOUT_L);
@@ -133,17 +137,17 @@ void angle_calc()
     gyro_data[Z] = ((i2c_read(GYRO_ZOUT_H) << 8) | i2c_read(GYRO_ZOUT_L)) - offset[Z];
 
     // calculate angle based on accelerometer data
-    accel_angle[ROLL] = ((atan2(accel_data[Y],sqrt((accel_data[X] * accel_data[X]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - ROLL_OFFSET) * UINT16_MAX;
-    accel_angle[PITCH] = ((atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX * -1;
+    accel_angle[ROLL] = (atan2(accel_data[Y],sqrt((accel_data[X] * accel_data[X]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - ROLL_OFFSET;
+    accel_angle[PITCH] = (atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI * -1) - PITCH_OFFSET;
 
     // calculate angle based on gyroscope data
-    gyro_angle[ROLL] = angle[ROLL] + (gyro_data[X] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
-    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE * -1);
-    gyro_angle[YAW] = gyro_data[Z] * UINT16_MAX / GYRO_SCALE * -1;
+    gyro_angle[ROLL] = angle[ROLL] + (gyro_data[X] / GYRO_SCALE / IMU_RATE);
+    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] / GYRO_SCALE / IMU_RATE * -1);
+    gyro_angle[YAW] = gyro_data[Z] / GYRO_SCALE * -1;
 
     // couple roll and pitch using yaw
-    gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
-    gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
+    gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / IMU_RATE * M_PI / 180);
+    gyro_angle[PITCH] += gyro_angle[ROLL] * sin(gyro_angle[YAW] / IMU_RATE * M_PI / 180);
 
     // check for receiver enable
     if(ch[4].setpoint > RC_MID)
@@ -160,16 +164,15 @@ void angle_calc()
         angle[PITCH] = accel_angle[PITCH];
         angle[YAW] = 0;
     }
-
-    angle[ROLL] /= UINT16_MAX;
-    angle[PITCH] /= UINT16_MAX;
-    angle[YAW] /= UINT16_MAX;
 }
 
+// calculate PID controller output
 void pid_calc()
 {
-    int i[3];
-    int d[3];
+    float error[3];
+    float p[3];
+    float i[3];
+    float d[3];
 
     if(ch[4].setpoint > RC_MID)
     {
@@ -184,29 +187,34 @@ void pid_calc()
         p[YAW] = error[YAW] * P_YAW_GAIN;
 
         // accumulate error and saturate
-        sum[ROLL] = saturate(sum[ROLL]+error[ROLL],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
-        sum[PITCH] = saturate(sum[PITCH]+error[PITCH],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
-        sum[YAW] = saturate(sum[YAW]+error[YAW],-1*MAX_ANGLE*UINT16_MAX,MAX_ANGLE*UINT16_MAX);
+        sum[ROLL] = saturate(sum[ROLL]+error[ROLL]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
+        sum[PITCH] = saturate(sum[PITCH]+error[PITCH]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
+        sum[YAW] = saturate(sum[YAW]+error[YAW]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
 
         // integral controller calculations
-        i[ROLL] = sum[ROLL] * I_ROLL_GAIN / IMU_RATE;
-        i[PITCH] = sum[PITCH] * I_PITCH_GAIN / IMU_RATE;
-        i[YAW] = sum[YAW] * I_YAW_GAIN / IMU_RATE;
+        i[ROLL] = sum[ROLL] * I_ROLL_GAIN;
+        i[PITCH] = sum[PITCH] * I_PITCH_GAIN;
+        i[YAW] = sum[YAW] * I_YAW_GAIN;
 
         // derivative controller calculations
-        d[ROLL] = (error[ROLL] - prev[ROLL]) * D_ROLL_GAIN * IMU_RATE;
-        d[PITCH] = (error[PITCH] - prev[PITCH]) * D_PITCH_GAIN * IMU_RATE;
-        d[YAW] = (error[YAW] - prev[YAW]) * D_YAW_GAIN * IMU_RATE;
+        d[ROLL] = (error[ROLL] - prev[ROLL]) * IMU_RATE * D_ROLL_GAIN;
+        d[PITCH] = (error[PITCH] - prev[PITCH]) * IMU_RATE * D_PITCH_GAIN;
+        d[YAW] = (error[YAW] - prev[YAW]) * IMU_RATE * D_YAW_GAIN;
 
         // save previous error values
         prev[ROLL] = error[ROLL];
         prev[PITCH] = error[PITCH];
         prev[YAW] = error[YAW];
 
-        // calculate PID outputs
-        pid[ROLL] = p[ROLL] + i[ROLL] + d[ROLL];
-        pid[PITCH] = p[PITCH] + i[PITCH] + d[PITCH];
-        pid[YAW] = p[YAW] + i[YAW] + d[YAW];
+        // calculate PID outputs and saturate
+        pid[ROLL] = saturate(p[ROLL]+i[ROLL]+d[ROLL],MAX_ANGLE*-1,MAX_ANGLE);
+        pid[PITCH] = saturate(p[PITCH]+i[PITCH]+d[PITCH],MAX_ANGLE*-1,MAX_ANGLE);
+        pid[YAW] = saturate(p[YAW]+i[YAW]+d[YAW],MAX_ANGLE*-1,MAX_ANGLE);
+
+        // linearize PID outputs to match ESC inputs
+        pid[ROLL] = pid[ROLL] * OUTPUT_SCALE / MAX_ANGLE;
+        pid[PITCH] = pid[PITCH] * OUTPUT_SCALE / MAX_ANGLE;
+        pid[YAW] = pid[YAW] * OUTPUT_SCALE / MAX_ANGLE;
     }
     else
     {
@@ -232,6 +240,11 @@ void init()
     i2c_flag = 0;
     sample_flag = 0;
 
+    // initialize offsets to 0
+    offset[X] = 0;
+    offset[Y] = 0;
+    offset[Z] = 0;
+
     // initialize channel states to low
     ch[0].state = 0;
     ch[1].state = 0;
@@ -243,10 +256,10 @@ void init()
     // initialize components
     init_dco();
     init_led();
-    init_imu();
-    init_battery();
-    init_rc();
     init_esc();
+    init_rc();
+    init_imu();
+    //init_battery();
 
     // enable all interrupts
     __enable_irq();
@@ -282,10 +295,9 @@ void init()
 // main program
 void main()
 {
-    int esc[4];
+    float esc[4];
 
     init();
-    green_led();
 
     while(1)
     {
@@ -296,11 +308,6 @@ void main()
         angle_calc();
         pid_calc();
 
-        pid[ROLL] = 3000 * pid[ROLL] / MAX_ANGLE;// / UINT16_MAX;
-        pid[PITCH] = 3000 * pid[PITCH] / MAX_ANGLE;// / UINT16_MAX;
-        pid[YAW] = 3000 * pid[YAW] / MAX_ANGLE;// / UINT16_MAX;
-
-
         esc[RF] = ch[2].setpoint - pid[ROLL] - pid[PITCH] + pid[YAW];
         esc[LF] = ch[2].setpoint + pid[ROLL] - pid[PITCH] - pid[YAW];
         esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
@@ -308,73 +315,29 @@ void main()
 
         if(ch[4].setpoint > RC_MID)
         {
-            // operate motors within hardware limits
-            TIMER_A0->CCR[RF+1] = saturate(esc[RF],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[LF+1] = saturate(esc[LF],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[LB+1] = saturate(esc[LB],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[RB+1] = saturate(esc[RB],ESC_IDLE,ESC_MAX);
+            // operate motors between idle and max RPM
+            TIMER_A0->CCR[RF+1] = (unsigned short)saturate(esc[RF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LF+1] = (unsigned short)saturate(esc[LF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LB+1] = (unsigned short)saturate(esc[LB],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[RB+1] = (unsigned short)saturate(esc[RB],ESC_IDLE,ESC_MAX);
+
+            // indicate drone is armed
+            reset_led();
+            green_led();
         }
         else
         {
-            // turn motors off
+            // keep motors off
             TIMER_A0->CCR[RF+1] = ESC_MIN;
             TIMER_A0->CCR[LF+1] = ESC_MIN;
             TIMER_A0->CCR[LB+1] = ESC_MIN;
             TIMER_A0->CCR[RB+1] = ESC_MIN;
+
+            // indicate drone is disarmed
+            reset_led();
+            blue_led();
         }
     }
-}
-
-// I2C interrupt service routine
-void EUSCIB0_IRQHandler()
-{
-    // check if byte was successfully transmitted
-    if(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)
-    {
-        i2c_flag = 1;
-        EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
-    }
-
-    // check if byte was successfully received
-    if(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)
-    {
-        i2c_flag = 1;
-        EUSCI_B0->IFG &= ~EUSCI_B_IFG_RXIFG0;
-    }
-}
-
-// TimerA interrupt service routine
-void TA1_0_IRQHandler()
-{
-    // set sample flag and clear interrupt flag
-    sample_flag = 1;
-    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-}
-
-// ADC14 interrupt service routine
-void ADC14_IRQHandler()
-{
-    if(((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD) && (ch[5].setpoint > RC_MID))
-    {
-        // start Timer32
-        TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
-    }
-    else
-    {
-        // stop Timer32 and turn off buzzer
-        TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
-        BATTERY_CTRL->OUT &= ~BIT1;
-    }
-
-    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-}
-
-// Timer32 interrupt service routine
-void T32_INT2_IRQHandler()
-{
-    // toggle buzzer and clear Timer32 interrupt
-    BATTERY_CTRL->OUT ^= BIT1;
-    TIMER32_2->INTCLR++;
 }
 
 // P3 interrupt service routine
@@ -494,4 +457,59 @@ void PORT3_IRQHandler()
 
         RC_CTRL->IFG &= ~BIT7;
     }
+}
+
+// I2C interrupt service routine
+void EUSCIB0_IRQHandler()
+{
+    // check if byte was successfully transmitted
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)
+    {
+        i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
+    }
+
+    // check if byte was successfully received
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)
+    {
+        i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_RXIFG0;
+    }
+}
+
+// TimerA interrupt service routine
+void TA1_0_IRQHandler()
+{
+    // set sample flag and clear interrupt flag
+    sample_flag = 1;
+    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+}
+
+// ADC14 interrupt service routine
+void ADC14_IRQHandler()
+{
+    if(((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD) && (ch[5].setpoint > RC_MID))
+    {
+        // start Timer32
+        TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
+    }
+    else
+    {
+        // turn off buzzer and stop Timer32
+        BATTERY_CTRL->OUT &= ~BIT1;
+        TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
+    }
+
+    // start ADC14 sampling
+    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+}
+
+// Timer32 interrupt service routine
+void T32_INT2_IRQHandler()
+{
+    //red_led(); //???
+
+    // toggle buzzer and clear Timer32 interrupt
+    BATTERY_CTRL->OUT ^= BIT1;
+    TIMER32_2->INTCLR++;
 }
