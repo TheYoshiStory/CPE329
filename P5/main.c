@@ -7,17 +7,17 @@
 #include "esc.h"
 #include <math.h>
 
-#define MAX_ANGLE 45
+#define MAX_ANGLE 90
 
-#define P_ROLL_GAIN 1
+#define P_ROLL_GAIN 10000
 #define I_ROLL_GAIN 0
 #define D_ROLL_GAIN 0
 
-#define P_PITCH_GAIN 1
+#define P_PITCH_GAIN 10000
 #define I_PITCH_GAIN 0
 #define D_PITCH_GAIN 0
 
-#define P_YAW_GAIN 1
+#define P_YAW_GAIN 0
 #define I_YAW_GAIN 0
 #define D_YAW_GAIN 0
 
@@ -28,9 +28,16 @@ volatile channel ch[6];
 int angle[3];
 int offset[3];
 
+int accel_angle[3];
+int gyro_angle[3];
+
 int pid[3];
 int sum[3];
 int prev[3];
+
+int error[3];
+int p[3];
+
 
 // saturate a value between two extrema
 int saturate(int val, int min, int max)
@@ -100,10 +107,10 @@ unsigned char i2c_read(unsigned char reg)
 // calculate input setpoint values
 void input_calc()
 {
-    ch[0].setpoint = (ch[0].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
-    ch[1].setpoint = (ch[1].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
+    ch[0].setpoint = (ch[0].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
+    ch[1].setpoint = (ch[1].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
     ch[2].setpoint = ch[2].pulse / 8;
-    ch[3].setpoint = (ch[3].pulse * MAX_ANGLE / 12000 - 135) * UINT16_MAX;
+    ch[3].setpoint = (ch[3].pulse - RC_MID) * MAX_ANGLE / (RC_MAX - RC_MID);// * UINT16_MAX;
     ch[4].setpoint = ch[4].pulse;
     ch[5].setpoint = ch[5].pulse;
 }
@@ -113,8 +120,7 @@ void angle_calc()
 {
     short accel_data[3];
     short gyro_data[3];
-    int accel_angle[3];
-    int gyro_angle[3];
+
 
     // read accelerometer (X,Y,Z) values
     accel_data[X] = (i2c_read(ACCEL_XOUT_H) << 8) | i2c_read(ACCEL_XOUT_L);
@@ -128,12 +134,12 @@ void angle_calc()
 
     // calculate angle based on accelerometer data
     accel_angle[ROLL] = ((atan2(accel_data[Y],sqrt((accel_data[X] * accel_data[X]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - ROLL_OFFSET) * UINT16_MAX;
-    accel_angle[PITCH] = -1 * ((atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX;
+    accel_angle[PITCH] = ((atan2(accel_data[X],sqrt((accel_data[Y] * accel_data[Y]) + (accel_data[Z] * accel_data[Z]))) * 180 / M_PI) - PITCH_OFFSET) * UINT16_MAX * -1;
 
     // calculate angle based on gyroscope data
     gyro_angle[ROLL] = angle[ROLL] + (gyro_data[X] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
-    gyro_angle[PITCH] = angle[PITCH] + (-1 * gyro_data[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE);
-    gyro_angle[YAW] = -1 * gyro_data[Z] * UINT16_MAX / GYRO_SCALE;
+    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] * UINT16_MAX / GYRO_SCALE / IMU_RATE * -1);
+    gyro_angle[YAW] = gyro_data[Z] * UINT16_MAX / GYRO_SCALE * -1;
 
     // couple roll and pitch using yaw
     gyro_angle[ROLL] -= gyro_angle[PITCH] * sin(gyro_angle[YAW] / UINT16_MAX / IMU_RATE * M_PI / 180);
@@ -154,21 +160,23 @@ void angle_calc()
         angle[PITCH] = accel_angle[PITCH];
         angle[YAW] = 0;
     }
+
+    angle[ROLL] /= UINT16_MAX;
+    angle[PITCH] /= UINT16_MAX;
+    angle[YAW] /= UINT16_MAX;
 }
 
 void pid_calc()
 {
-    int error[3];
-    int p[3];
     int i[3];
     int d[3];
 
     if(ch[4].setpoint > RC_MID)
     {
         // calculate error signals
-        error[ROLL] = ch[0].pulse - angle[ROLL];
-        error[PITCH] = ch[1].pulse - angle[PITCH];
-        error[YAW] = ch[3].pulse - angle[YAW];
+        error[ROLL] = ch[0].setpoint - angle[ROLL];
+        error[PITCH] = ch[1].setpoint - angle[PITCH];
+        error[YAW] = ch[3].setpoint - angle[YAW];
 
         // proportional controller calculations
         p[ROLL] = error[ROLL] * P_ROLL_GAIN;
@@ -186,7 +194,7 @@ void pid_calc()
         i[YAW] = sum[YAW] * I_YAW_GAIN / IMU_RATE;
 
         // derivative controller calculations
-        d[ROLL] = (error[ROLL] - prev[ROLL]) * D_ROLL_GAIN* IMU_RATE;
+        d[ROLL] = (error[ROLL] - prev[ROLL]) * D_ROLL_GAIN * IMU_RATE;
         d[PITCH] = (error[PITCH] - prev[PITCH]) * D_PITCH_GAIN * IMU_RATE;
         d[YAW] = (error[YAW] - prev[YAW]) * D_YAW_GAIN * IMU_RATE;
 
@@ -278,8 +286,6 @@ void main()
 
     init();
     green_led();
-    //int error[3];
-
 
     while(1)
     {
@@ -290,17 +296,17 @@ void main()
         angle_calc();
         pid_calc();
 
-        pid[ROLL] = 2800 * pid[ROLL] / 90 / UINT16_MAX;
-        pid[PITCH] = 2800 * pid[PITCH] / 90 / UINT16_MAX;
-        pid[YAW] = 2800 * pid[YAW] / 90 / UINT16_MAX;
+        pid[ROLL] = 3000 * pid[ROLL] / MAX_ANGLE;// / UINT16_MAX;
+        pid[PITCH] = 3000 * pid[PITCH] / MAX_ANGLE;// / UINT16_MAX;
+        pid[YAW] = 3000 * pid[YAW] / MAX_ANGLE;// / UINT16_MAX;
 
 
-        esc[RF] = ch[2].pulse + pid[ROLL] + pid[PITCH] + pid[YAW];
-        esc[LF] = ch[2].pulse - pid[ROLL] + pid[PITCH] - pid[YAW];
-        esc[LB] = ch[2].pulse - pid[ROLL] - pid[PITCH] + pid[YAW];
-        esc[RB] = ch[2].pulse + pid[ROLL] - pid[PITCH] - pid[YAW];
+        esc[RF] = ch[2].setpoint - pid[ROLL] - pid[PITCH] + pid[YAW];
+        esc[LF] = ch[2].setpoint + pid[ROLL] - pid[PITCH] - pid[YAW];
+        esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
+        esc[RB] = ch[2].setpoint - pid[ROLL] + pid[PITCH] - pid[YAW];
 
-        if(ch[4].pulse > RC_MID)
+        if(ch[4].setpoint > RC_MID)
         {
             // operate motors within hardware limits
             TIMER_A0->CCR[RF+1] = saturate(esc[RF],ESC_IDLE,ESC_MAX);
@@ -310,7 +316,7 @@ void main()
         }
         else
         {
-            // keep motors off
+            // turn motors off
             TIMER_A0->CCR[RF+1] = ESC_MIN;
             TIMER_A0->CCR[LF+1] = ESC_MIN;
             TIMER_A0->CCR[LB+1] = ESC_MIN;

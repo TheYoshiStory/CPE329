@@ -49,7 +49,7 @@
 #define ACCEL_SCALE 417.959
 #define GYRO_SCALE 65.500
 
-#define ALPHA  0.900
+#define ALPHA  0.995
 #define BETA 0.100
 
 void init_imu();
