@@ -14,17 +14,17 @@
 #define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
 
-#define P_ROLL_GAIN 1.0
-#define I_ROLL_GAIN 0.2
-#define D_ROLL_GAIN 0.2
+#define P_ROLL_GAIN 0.50
+#define I_ROLL_GAIN 0.30
+#define D_ROLL_GAIN 0.15
 
-#define P_PITCH_GAIN 1.0
-#define I_PITCH_GAIN 0.2
-#define D_PITCH_GAIN 0.2
+#define P_PITCH_GAIN 0.50
+#define I_PITCH_GAIN 0.30
+#define D_PITCH_GAIN 0.15
 
-#define P_YAW_GAIN 1.5
-#define I_YAW_GAIN 0.0
-#define D_YAW_GAIN 0.0
+#define P_YAW_GAIN 2.00
+#define I_YAW_GAIN 0.10
+#define D_YAW_GAIN 0.00
 // ----------------------------------------------------------------------------
 
 
@@ -144,7 +144,7 @@ void input_calc()
     // linearize yaw with a range of MAX_ANGLE
     if(abs(ch[3].pulse - RC_MID) > RC_DZ)
     {
-        ch[3].setpoint = MAX_ANGLE / 2 * (ch[3].pulse - RC_MID) / (RC_MAX - RC_MID);
+        ch[3].setpoint = MAX_ANGLE * (ch[3].pulse - RC_MID) / (RC_MAX - RC_MID);
     }
     else
     {
