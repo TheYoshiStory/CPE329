@@ -10,27 +10,3 @@ void init_led()
     LED_CTRL->DIR |= BIT2|BIT1|BIT0;
     LED_CTRL->OUT &= ~(BIT2|BIT1|BIT0);
 }
-
-// turn off all LEDs
-void reset_led()
-{
-    LED_CTRL->OUT &= ~(BIT2|BIT1|BIT0);
-}
-
-// toggle red LED
-void red_led()
-{
-    LED_CTRL->OUT ^= BIT0;
-}
-
-// toggle green LED
-void green_led()
-{
-    LED_CTRL->OUT ^= BIT1;
-}
-
-// toggle blue LED
-void blue_led()
-{
-    LED_CTRL->OUT ^= BIT2;
-}

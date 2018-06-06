@@ -154,7 +154,7 @@ void input_calc()
     // put throttle input on same scale as ESC inputs
     ch[2].setpoint = ch[2].pulse / INPUT_SCALE;
 
-    // use raw values for auxilary switches
+    // use raw values for auxiliary switches
     ch[4].setpoint = ch[4].pulse;
     ch[5].setpoint = ch[5].pulse;
 }
@@ -334,14 +334,14 @@ void main()
 
         if(i & BIT7)
         {
-            red_led();
+            LED_CTRL->OUT ^= LED_YELLOW;
         }
     }
 
     offset[X] /= IMU_CAL;
     offset[Y] /= IMU_CAL;
     offset[Z] /= IMU_CAL;
-    reset_led();
+    LED_CTRL->OUT &= ~LED_YELLOW;
 
     // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
@@ -365,8 +365,8 @@ void main()
             TIMER_A0->CCR[RB+1] = saturate(esc[RB],ESC_IDLE,ESC_MAX);
 
             // indicate drone is armed
-            reset_led();
-            green_led();
+            LED_CTRL->OUT &= ~LED_BLUE;
+            LED_CTRL->OUT |= LED_GREEN;
         }
         else
         {
@@ -377,8 +377,8 @@ void main()
             TIMER_A0->CCR[RB+1] = ESC_MIN;
 
             // indicate drone is disarmed
-            reset_led();
-            blue_led();
+            LED_CTRL->OUT &= ~LED_GREEN;
+            LED_CTRL->OUT |= LED_BLUE;
         }
     }
 }
@@ -550,8 +550,6 @@ void ADC14_IRQHandler()
 
 void T32_INT2_IRQHandler()
 {
-    //red_led(); //???
-
     // toggle buzzer and clear Timer32 interrupt
     BATTERY_CTRL->OUT ^= BIT1;
     TIMER32_2->INTCLR++;
