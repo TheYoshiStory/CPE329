@@ -14,17 +14,17 @@
 #define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
 
-#define P_ROLL_GAIN 1.0     // 3.2
-#define I_ROLL_GAIN 0.1     // 1.2
-#define D_ROLL_GAIN 0.0     // 1.8
+#define P_ROLL_GAIN 1.0
+#define I_ROLL_GAIN 0.2
+#define D_ROLL_GAIN 0.2
 
-#define P_PITCH_GAIN 1.0    // 3.2
-#define I_PITCH_GAIN 0.1    // 1.2
-#define D_PITCH_GAIN 0.0    // 1.8
+#define P_PITCH_GAIN 1.0
+#define I_PITCH_GAIN 0.2
+#define D_PITCH_GAIN 0.2
 
-#define P_YAW_GAIN 1.0      // 5.6
-#define I_YAW_GAIN 0.0      // 0.8
-#define D_YAW_GAIN 0.0      // 0.2
+#define P_YAW_GAIN 1.5
+#define I_YAW_GAIN 0.0
+#define D_YAW_GAIN 0.0
 // ----------------------------------------------------------------------------
 
 
@@ -44,7 +44,6 @@ float prev[3];
 
 float esc[4];
 // ----------------------------------------------------------------------------
-
 
 // ----------------------------------------------------------------------------
 // -- UTILITY FUNCTIONS -------------------------------------------------------
@@ -122,15 +121,40 @@ void i2c_write(unsigned char reg, unsigned char data)
 // ----------------------------------------------------------------------------
 void input_calc()
 {
-    // linearize roll, pitch, and yaw to be between -MAX_ANGLE and MAX_ANGLE
-    ch[0].setpoint = MAX_ANGLE * (ch[0].pulse - RC_MID) / (RC_MAX - RC_MID);
-    ch[1].setpoint = MAX_ANGLE * (ch[1].pulse - RC_MID) / (RC_MAX - RC_MID);
-    ch[3].setpoint = MAX_ANGLE * (ch[3].pulse - RC_MID) / (RC_MAX - RC_MID);
+    // linearize roll with a range of MAX_ANGLE
+    if(abs(ch[0].pulse - RC_MID) > RC_DZ)
+    {
+        ch[0].setpoint = MAX_ANGLE / 2 * (ch[0].pulse - RC_MID) / (RC_MAX - RC_MID);
+    }
+    else
+    {
+        ch[0].setpoint = 0;
+    }
+
+    // linearize pitch with a range of MAX_ANGLE
+    if(abs(ch[1].pulse - RC_MID) > RC_DZ)
+    {
+        ch[1].setpoint = MAX_ANGLE / 2 * (ch[1].pulse - RC_MID) / (RC_MAX - RC_MID);
+    }
+    else
+    {
+        ch[1].setpoint = 0;
+    }
+
+    // linearize yaw with a range of MAX_ANGLE
+    if(abs(ch[3].pulse - RC_MID) > RC_DZ)
+    {
+        ch[3].setpoint = MAX_ANGLE / 2 * (ch[3].pulse - RC_MID) / (RC_MAX - RC_MID);
+    }
+    else
+    {
+        ch[3].setpoint = 0;
+    }
 
     // put throttle input on same scale as ESC inputs
     ch[2].setpoint = ch[2].pulse / INPUT_SCALE;
 
-    // use raw values for switch inputs
+    // use raw values for auxilary switches
     ch[4].setpoint = ch[4].pulse;
     ch[5].setpoint = ch[5].pulse;
 }
@@ -158,7 +182,7 @@ void angle_calc()
 
     // calculate angle based on gyroscope data
     gyro_angle[ROLL] = angle[ROLL] + (gyro_data[X] / GYRO_SCALE / IMU_RATE);
-    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] / GYRO_SCALE / IMU_RATE * -1);
+    gyro_angle[PITCH] = angle[PITCH] + (gyro_data[Y] / GYRO_SCALE / IMU_RATE);
     gyro_angle[YAW] = gyro_data[Z] / GYRO_SCALE * -1;
 
     // couple roll and pitch using yaw
@@ -202,9 +226,9 @@ void pid_calc()
         p[YAW] = error[YAW] * P_YAW_GAIN;
 
         // accumulate error and saturate
-        sum[ROLL] = saturate(sum[ROLL]+error[ROLL]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
-        sum[PITCH] = saturate(sum[PITCH]+error[PITCH]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
-        sum[YAW] = saturate(sum[YAW]+error[YAW]/IMU_RATE,MAX_ANGLE*-1,MAX_ANGLE);
+        sum[ROLL] = saturate(sum[ROLL] + error[ROLL] / IMU_RATE,MAX_ANGLE * -1,MAX_ANGLE);
+        sum[PITCH] = saturate(sum[PITCH] + error[PITCH] / IMU_RATE,MAX_ANGLE * -1,MAX_ANGLE);
+        sum[YAW] = saturate(sum[YAW] + error[YAW] / IMU_RATE,MAX_ANGLE * -1,MAX_ANGLE);
 
         // integral controller calculations
         i[ROLL] = sum[ROLL] * I_ROLL_GAIN;
@@ -222,9 +246,9 @@ void pid_calc()
         prev[YAW] = error[YAW];
 
         // calculate PID outputs and saturate
-        pid[ROLL] = saturate(p[ROLL]+i[ROLL]+d[ROLL],MAX_ANGLE*-1,MAX_ANGLE);
-        pid[PITCH] = saturate(p[PITCH]+i[PITCH]+d[PITCH],MAX_ANGLE*-1,MAX_ANGLE);
-        pid[YAW] = saturate(p[YAW]+i[YAW]+d[YAW],MAX_ANGLE*-1,MAX_ANGLE);
+        pid[ROLL] = saturate(p[ROLL] + i[ROLL] + d[ROLL],MAX_ANGLE * -1,MAX_ANGLE);
+        pid[PITCH] = saturate(p[PITCH] + i[PITCH] + d[PITCH],MAX_ANGLE * -1,MAX_ANGLE);
+        pid[YAW] = saturate(p[YAW] + i[YAW] + d[YAW],MAX_ANGLE * -1,MAX_ANGLE);
 
         // linearize PID outputs to match ESC inputs
         pid[ROLL] = pid[ROLL] * OUTPUT_SCALE / MAX_ANGLE;
@@ -298,6 +322,9 @@ void main()
     i2c_write(ACCEL_CONFIG,ACCEL_CONFIG_AFS_SEL_2);
     i2c_write(GYRO_CONFIG,GYRO_CONFIG_FS_SEL_1);
 
+    // wait for IMU to finish configuration
+    delay_ms(100);
+
     // calibrate gyroscope
     for(i = 0; i < IMU_CAL; i++)
     {
@@ -332,10 +359,10 @@ void main()
         if(ch[4].setpoint > RC_MID)
         {
             // operate motors between idle and max RPM
-            TIMER_A0->CCR[RF+1] = (unsigned short)saturate(esc[RF],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[LF+1] = (unsigned short)saturate(esc[LF],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[LB+1] = (unsigned short)saturate(esc[LB],ESC_IDLE,ESC_MAX);
-            TIMER_A0->CCR[RB+1] = (unsigned short)saturate(esc[RB],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[RF+1] = saturate(esc[RF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LF+1] = saturate(esc[LF],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[LB+1] = saturate(esc[LB],ESC_IDLE,ESC_MAX);
+            TIMER_A0->CCR[RB+1] = saturate(esc[RB],ESC_IDLE,ESC_MAX);
 
             // indicate drone is armed
             reset_led();

@@ -11,6 +11,7 @@
 #define RC_MAX 48000
 #define RC_MID 36000
 #define RC_MIN 24000
+#define RC_DZ 1200
 
 /*
  *  ----------------------

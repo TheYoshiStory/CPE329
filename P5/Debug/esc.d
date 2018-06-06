@@ -16,6 +16,7 @@ esc.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/core_cm4.h
 esc.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h
 esc.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 esc.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
+esc.obj: ../delay.h
 esc.obj: ../esc.h
 
 ../esc.c: 
@@ -34,4 +35,5 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/core_cm4.h:
 C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h: 
 C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h: 
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
+../delay.h: 
 ../esc.h: 

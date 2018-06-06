@@ -8,6 +8,7 @@
  */
 #define ESC_CTRL P2
 
+#define ESC_FREQ 50
 #define ESC_MAX 6000
 #define ESC_MIN 3000
 #define ESC_IDLE 3200

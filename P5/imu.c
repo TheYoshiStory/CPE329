@@ -17,7 +17,7 @@ void init_imu()
     EUSCI_B0->CTLW0 &= ~EUSCI_A_CTLW0_SWRST;
     EUSCI_B0->IE |= EUSCI_A_IE_TXIE | EUSCI_A_IE_RXIE;
 
-    // configure TimerA for 1ms interval timing
+    // configure TimerA for constant interval timing
     TIMER_A1->CTL |= TIMER_A_CTL_TASSEL_2 | TIMER_A_CTL_ID__4 | TIMER_A_CTL_MC__STOP |TIMER_A_CTL_CLR | TIMER_A_CTL_IE;
     TIMER_A1->CCTL[0] = TIMER_A_CCTLN_CCIE;
     TIMER_A1->CCR[0] = CLK_FREQ / 4 / IMU_RATE;

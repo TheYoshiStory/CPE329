@@ -1,4 +1,5 @@
 #include "msp.h"
+#include "delay.h"
 #include "esc.h"
 
 // initialize ESC PWM output pins
@@ -15,7 +16,7 @@ void init_esc()
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCTL[3] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCTL[4] |= TIMER_A_CCTLN_OUTMOD_7;
-    TIMER_A0->CCR[0] = 60000;
+    TIMER_A0->CCR[0] = CLK_FREQ / 8 / ESC_FREQ;
     TIMER_A0->CCR[RF+1] = ESC_MAX;
     TIMER_A0->CCR[LF+1] = ESC_MAX;
     TIMER_A0->CCR[LB+1] = ESC_MAX;
