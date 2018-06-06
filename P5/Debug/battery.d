@@ -16,8 +16,6 @@ battery.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/core_cm4.h
 battery.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h
 battery.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 battery.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
-battery.obj: ../delay.h
-battery.obj: ../rc.h
 battery.obj: ../battery.h
 
 ../battery.c: 
@@ -36,6 +34,4 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/core_cm4.h:
 C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h: 
 C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h: 
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
-../delay.h: 
-../rc.h: 
 ../battery.h: 
