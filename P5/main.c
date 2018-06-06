@@ -311,7 +311,7 @@ void main()
     init_esc();
     init_rc();
     init_imu();
-    //init_battery();
+    init_battery();
 
     // enable all interrupts
     __enable_irq();
@@ -334,22 +334,34 @@ void main()
 
         if(i & BIT7)
         {
-            LED_CTRL->OUT ^= LED_YELLOW;
+            LED_CTRL->OUT ^= LED_BLUE;
         }
     }
 
     offset[X] /= IMU_CAL;
     offset[Y] /= IMU_CAL;
     offset[Z] /= IMU_CAL;
-    LED_CTRL->OUT &= ~LED_YELLOW;
+    LED_CTRL->OUT &= ~LED_BLUE;
 
     // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
+    //start ADC
+    //ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+    TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
 
     while(1)
     {
         while(!sample_flag);
         sample_flag = 0;
+
+        if (TIMER32_2->VALUE > CLK_FREQ / 2)
+        {
+            LED_CTRL->OUT |= LED_GREEN;
+        }
+        else
+        {
+            LED_CTRL->OUT &= ~LED_GREEN;
+        }
 
         input_calc();
         angle_calc();
@@ -365,8 +377,8 @@ void main()
             TIMER_A0->CCR[RB+1] = saturate(esc[RB],ESC_IDLE,ESC_MAX);
 
             // indicate drone is armed
-            LED_CTRL->OUT &= ~LED_BLUE;
-            LED_CTRL->OUT |= LED_GREEN;
+            //LED_CTRL->OUT &= ~LED_BLUE;
+            //LED_CTRL->OUT |= LED_GREEN;
         }
         else
         {
@@ -377,8 +389,8 @@ void main()
             TIMER_A0->CCR[RB+1] = ESC_MIN;
 
             // indicate drone is disarmed
-            LED_CTRL->OUT &= ~LED_GREEN;
-            LED_CTRL->OUT |= LED_BLUE;
+            //LED_CTRL->OUT &= ~LED_GREEN;
+            //LED_CTRL->OUT |= LED_BLUE;
         }
     }
 }
@@ -532,16 +544,27 @@ void TA1_0_IRQHandler()
 
 void ADC14_IRQHandler()
 {
-    if(((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD) && (ch[5].setpoint > RC_MID))
+    if((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < BATTERY_THRESHOLD)
     {
         // start Timer32
-        TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
+        //TIMER32_2->CONTROL |= TIMER32_CONTROL_ENABLE;
+        LED_CTRL->OUT &= ~LED_YELLOW;
+        LED_CTRL->OUT |= LED_RED;
+    }
+    else if((ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE) < 11500)
+    {
+        LED_CTRL->OUT &= ~(LED_GREEN|LED_RED);
+        LED_CTRL->OUT |= LED_YELLOW;
+        //BATTERY_CTRL->OUT &= ~BIT1;
+        //TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
     }
     else
     {
+        LED_CTRL->OUT &= ~LED_YELLOW;
+        LED_CTRL->OUT |= LED_GREEN;
         // turn off buzzer and stop Timer32
-        BATTERY_CTRL->OUT &= ~BIT1;
-        TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
+        //BATTERY_CTRL->OUT &= ~BIT1;
+        //TIMER32_2->CONTROL &= ~TIMER32_CONTROL_ENABLE;
     }
 
     // start ADC14 sampling
@@ -552,6 +575,7 @@ void T32_INT2_IRQHandler()
 {
     // toggle buzzer and clear Timer32 interrupt
     BATTERY_CTRL->OUT ^= BIT1;
-    TIMER32_2->INTCLR++;
+    LED_CTRL->OUT ^= LED_BLUE;
+    TIMER32_2->INTCLR = 0;
 }
 // ----------------------------------------------------------------------------
