@@ -11,7 +11,7 @@
 #define IMU_ADDR 0x68
 #define IMU_FREQ 400000
 #define IMU_CAL 4096
-#define IMU_RATE 500
+#define IMU_RATE 250
 
 #define PWR_MGMT_1 0x6B
 #define CONFIG 0x1A
@@ -49,7 +49,7 @@
 #define ROLL_OFFSET 0.272
 #define PITCH_OFFSET -2.745
 
-#define ALPHA  0.999
+#define ALPHA  0.996
 #define BETA 0.800
 
 void init_imu();

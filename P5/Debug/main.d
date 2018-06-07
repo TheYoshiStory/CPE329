@@ -18,9 +18,10 @@ main.obj: C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 main.obj: C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
 main.obj: ../delay.h
 main.obj: ../led.h
+main.obj: ../note.h
 main.obj: ../esc.h
-main.obj: ../rc.h
 main.obj: ../imu.h
+main.obj: ../rc.h
 main.obj: ../battery.h
 main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/math.h
 main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h
@@ -46,9 +47,10 @@ C:/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h:
 C:/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
 ../delay.h: 
 ../led.h: 
+../note.h: 
 ../esc.h: 
-../rc.h: 
 ../imu.h: 
+../rc.h: 
 ../battery.h: 
 C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/math.h: 
 C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h: 

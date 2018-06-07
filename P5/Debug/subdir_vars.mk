@@ -15,6 +15,7 @@ C_SRCS += \
 ../imu.c \
 ../led.c \
 ../main.c \
+../note.c \
 ../rc.c \
 ../startup_msp432p401r_ccs.c \
 ../system_msp432p401r.c 
@@ -26,6 +27,7 @@ C_DEPS += \
 ./imu.d \
 ./led.d \
 ./main.d \
+./note.d \
 ./rc.d \
 ./startup_msp432p401r_ccs.d \
 ./system_msp432p401r.d 
@@ -37,6 +39,7 @@ OBJS += \
 ./imu.obj \
 ./led.obj \
 ./main.obj \
+./note.obj \
 ./rc.obj \
 ./startup_msp432p401r_ccs.obj \
 ./system_msp432p401r.obj 
@@ -48,6 +51,7 @@ OBJS__QUOTED += \
 "imu.obj" \
 "led.obj" \
 "main.obj" \
+"note.obj" \
 "rc.obj" \
 "startup_msp432p401r_ccs.obj" \
 "system_msp432p401r.obj" 
@@ -59,6 +63,7 @@ C_DEPS__QUOTED += \
 "imu.d" \
 "led.d" \
 "main.d" \
+"note.d" \
 "rc.d" \
 "startup_msp432p401r_ccs.d" \
 "system_msp432p401r.d" 
@@ -70,6 +75,7 @@ C_SRCS__QUOTED += \
 "../imu.c" \
 "../led.c" \
 "../main.c" \
+"../note.c" \
 "../rc.c" \
 "../startup_msp432p401r_ccs.c" \
 "../system_msp432p401r.c" 

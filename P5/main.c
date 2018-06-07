@@ -1,15 +1,13 @@
 #include "msp.h"
 #include "delay.h"
 #include "led.h"
+#include "note.h"
 #include "esc.h"
-#include "rc.h"
 #include "imu.h"
+#include "rc.h"
 #include "battery.h"
 #include <math.h>
 
-// ----------------------------------------------------------------------------
-// -- CONSTANTS ---------------------------------------------------------------
-// ----------------------------------------------------------------------------
 #define INPUT_SCALE 8.0
 #define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
@@ -25,12 +23,7 @@
 #define P_YAW_GAIN 2.00
 #define I_YAW_GAIN 0.10
 #define D_YAW_GAIN 0.00
-// ----------------------------------------------------------------------------
 
-
-// ----------------------------------------------------------------------------
-// -- GLOBAL VARIABLES --------------------------------------------------------
-// ----------------------------------------------------------------------------
 volatile char i2c_flag;
 volatile char sample_flag;
 volatile channel ch[6];
@@ -43,14 +36,10 @@ float sum[3];
 float prev[3];
 
 float esc[4];
-// ----------------------------------------------------------------------------
 
-// ----------------------------------------------------------------------------
-// -- UTILITY FUNCTIONS -------------------------------------------------------
-// ----------------------------------------------------------------------------
+// saturate a value between two limits
 float saturate(float val, float min, float max)
 {
-    // saturate input between two extrema
     if(val < min)
     {
         return(min);
@@ -65,6 +54,7 @@ float saturate(float val, float min, float max)
     }
 }
 
+// read a byte via I2C
 unsigned char i2c_read(unsigned char reg)
 {
     // set transmit mode and send START condition
@@ -92,6 +82,7 @@ unsigned char i2c_read(unsigned char reg)
     return(EUSCI_B0->RXBUF & 0xFF);
 }
 
+// write a byte via I2C
 void i2c_write(unsigned char reg, unsigned char data)
 {
     // set transmit mode and send START condition
@@ -113,12 +104,8 @@ void i2c_write(unsigned char reg, unsigned char data)
     // send STOP condition
     EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;
 }
-// ----------------------------------------------------------------------------
 
-
-// ----------------------------------------------------------------------------
-// -- CONTROLLER FUNCTIONS ----------------------------------------------------
-// ----------------------------------------------------------------------------
+// calculate receiver inputs
 void input_calc()
 {
     // linearize roll with a range of half of MAX_ANGLE
@@ -159,6 +146,7 @@ void input_calc()
     ch[5].setpoint = ch[5].pulse;
 }
 
+// calculate IMU angles
 void angle_calc()
 {
     short accel_data[3];
@@ -206,6 +194,7 @@ void angle_calc()
     }
 }
 
+// calculate PID controller outputs
 void pid_calc()
 {
     float error[3];
@@ -267,6 +256,7 @@ void pid_calc()
     }
 }
 
+// calculate ESC outputs
 void output_calc()
 {
     // use throttle as base input
@@ -275,12 +265,8 @@ void output_calc()
     esc[LB] = ch[2].setpoint + pid[ROLL] + pid[PITCH] + pid[YAW];
     esc[RB] = ch[2].setpoint - pid[ROLL] + pid[PITCH] - pid[YAW];
 }
-// ----------------------------------------------------------------------------
 
-
-// ----------------------------------------------------------------------------
-// -- MAIN PROGRAM ------------------------------------------------------------
-// ----------------------------------------------------------------------------
+// main program
 void main()
 {
     int i;
@@ -308,9 +294,10 @@ void main()
     // initialize components
     init_dco();
     init_led();
+    init_note();
     init_esc();
-    init_rc();
     init_imu();
+    init_rc();
     init_battery();
 
     // enable all interrupts
@@ -321,9 +308,6 @@ void main()
     i2c_write(CONFIG,CONFIG_DLPF_CFG_3);
     i2c_write(ACCEL_CONFIG,ACCEL_CONFIG_AFS_SEL_2);
     i2c_write(GYRO_CONFIG,GYRO_CONFIG_FS_SEL_1);
-
-    // wait for IMU to finish configuration
-    delay_ms(100);
 
     // calibrate gyroscope
     for(i = 0; i < IMU_CAL; i++)
@@ -341,22 +325,35 @@ void main()
     offset[X] /= IMU_CAL;
     offset[Y] /= IMU_CAL;
     offset[Z] /= IMU_CAL;
-    LED_CTRL->OUT &= ~LED_BLUE;
 
-    // start TimerA and ADC14
+    // play C Major chord
+    play_note(C4,100);
+    play_note(E4,100);
+    play_note(G4,100);
+
+    // start TimerA
     TIMER_A1->CTL |= TIMER_A_CTL_MC__UP;
-    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
 
+    // main program loop
     while(1)
     {
+        // halt to maintain constant refresh rate
         while(!sample_flag);
         sample_flag = 0;
 
+        // start sampling if ADC14 is not busy
+        if(!(ADC14->CTL0 & ADC14_CTL0_BUSY))
+        {
+            ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+        }
+
+        // controller calculations
         input_calc();
         angle_calc();
         pid_calc();
         output_calc();
 
+        // send output to motors
         if(ch[4].setpoint > RC_MID)
         {
             // operate motors between idle and max RPM
@@ -375,12 +372,34 @@ void main()
         }
     }
 }
-// ----------------------------------------------------------------------------
 
+// set I2C flag
+void EUSCIB0_IRQHandler()
+{
+    // check if byte was successfully transmitted
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)
+    {
+        i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
+    }
 
-// ----------------------------------------------------------------------------
-// -- INTERRUPT SERVICE ROUTINES ----------------------------------------------
-// ----------------------------------------------------------------------------
+    // check if byte was successfully received
+    if(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)
+    {
+        i2c_flag = 1;
+        EUSCI_B0->IFG &= ~EUSCI_B_IFG_RXIFG0;
+    }
+}
+
+// run main program loop at a constant rate
+void TA1_0_IRQHandler()
+{
+    // set sample flag and clear interrupt flag
+    sample_flag = 1;
+    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+}
+
+// time receiver input pulse widths
 void PORT3_IRQHandler()
 {
     // channel 1
@@ -499,34 +518,12 @@ void PORT3_IRQHandler()
     }
 }
 
-void EUSCIB0_IRQHandler()
-{
-    // check if byte was successfully transmitted
-    if(EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)
-    {
-        i2c_flag = 1;
-        EUSCI_B0->IFG &= ~EUSCI_B_IFG_TXIFG0;
-    }
-
-    // check if byte was successfully received
-    if(EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)
-    {
-        i2c_flag = 1;
-        EUSCI_B0->IFG &= ~EUSCI_B_IFG_RXIFG0;
-    }
-}
-
-void TA1_0_IRQHandler()
-{
-    // set sample flag and clear interrupt flag
-    sample_flag = 1;
-    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-}
-
+// read battery voltage and update status LED
 void ADC14_IRQHandler()
 {
     float battery_voltage;
 
+    // convert raw ADC data to millivolts
     battery_voltage = ADC14->MEM[0] * BATTERY_DIVIDER * VDD / SCALE;
 
     if(battery_voltage < BATTERY_MIN)
@@ -550,8 +547,4 @@ void ADC14_IRQHandler()
         LED_CTRL->OUT &= ~LED_YELLOW;
         LED_CTRL->OUT |= LED_GREEN;
     }
-
-    // start ADC14 sampling
-    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
 }
-// ----------------------------------------------------------------------------

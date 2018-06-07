@@ -4,13 +4,9 @@
 // initialize battery monitoring module
 void init_battery()
 {
-    // configure BATTERY_CTRL for analog input and digital output
-    BATTERY_CTRL->SEL1 &= BIT1;
+    // configure BATTERY_CTRL for analog input
     BATTERY_CTRL->SEL1 |= BIT0;
-    BATTERY_CTRL->SEL0 &= BIT1;
     BATTERY_CTRL->SEL0 |= BIT0;
-    BATTERY_CTRL->DIR |= BIT1;
-    BATTERY_CTRL->OUT &= ~BIT1;
 
     // enable 14-bit precision conversion for A13
     ADC14->CTL0 = ADC14_CTL0_SHP | ADC14_CTL0_SSEL__MCLK | ADC14_CTL0_SHT0_2 | ADC14_CTL0_ON;
@@ -20,4 +16,5 @@ void init_battery()
 
     // enable ADC14 interrupt
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
+    NVIC->IP[10] |= (0x30 << NVIC_IPR10_PRI_40_OFS) & NVIC_IPR10_PRI_40_M;
 }

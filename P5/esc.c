@@ -17,8 +17,18 @@ void init_esc()
     TIMER_A0->CCTL[3] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCTL[4] |= TIMER_A_CCTLN_OUTMOD_7;
     TIMER_A0->CCR[0] = CLK_FREQ / 8 / ESC_FREQ;
+
+    // calibrate ESC_MAX value
     TIMER_A0->CCR[RF+1] = ESC_MAX;
     TIMER_A0->CCR[LF+1] = ESC_MAX;
     TIMER_A0->CCR[LB+1] = ESC_MAX;
     TIMER_A0->CCR[RB+1] = ESC_MAX;
+    delay_ms(5000);
+
+    // calibrate ESC_MIN value
+    TIMER_A0->CCR[RF+1] = ESC_MIN;
+    TIMER_A0->CCR[LF+1] = ESC_MIN;
+    TIMER_A0->CCR[LB+1] = ESC_MIN;
+    TIMER_A0->CCR[RB+1] = ESC_MIN;
+    delay_ms(4000);
 }
