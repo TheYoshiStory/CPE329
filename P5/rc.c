@@ -17,5 +17,5 @@ void init_rc()
 
     // enable P3 interrupts
     NVIC->ISER[1] = 1 << ((PORT3_IRQn) & 31);
-    NVIC->IP[13] |= (0x20 << NVIC_IPR13_PRI_53_OFS) & NVIC_IPR13_PRI_53_M;
+    NVIC->IP[13] |= (0x80 << NVIC_IPR13_PRI_53_OFS) & NVIC_IPR13_PRI_53_M;
 }

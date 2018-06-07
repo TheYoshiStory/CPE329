@@ -49,7 +49,7 @@
 #define ROLL_OFFSET 0.272
 #define PITCH_OFFSET -2.745
 
-#define ALPHA  0.996
+#define ALPHA  0.995
 #define BETA 0.800
 
 void init_imu();

@@ -12,12 +12,12 @@
 #define OUTPUT_SCALE 1500.0
 #define MAX_ANGLE 90.0
 
-#define P_ROLL_GAIN 0.50
-#define I_ROLL_GAIN 0.30
+#define P_ROLL_GAIN 0.40
+#define I_ROLL_GAIN 0.25
 #define D_ROLL_GAIN 0.15
 
-#define P_PITCH_GAIN 0.50
-#define I_PITCH_GAIN 0.30
+#define P_PITCH_GAIN 0.40
+#define I_PITCH_GAIN 0.25
 #define D_PITCH_GAIN 0.15
 
 #define P_YAW_GAIN 2.00

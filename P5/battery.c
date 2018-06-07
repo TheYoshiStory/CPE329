@@ -16,5 +16,5 @@ void init_battery()
 
     // enable ADC14 interrupt
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
-    NVIC->IP[10] |= (0x30 << NVIC_IPR10_PRI_40_OFS) & NVIC_IPR10_PRI_40_M;
+    NVIC->IP[10] |= (0xC0 << NVIC_IPR10_PRI_40_OFS) & NVIC_IPR10_PRI_40_M;
 }

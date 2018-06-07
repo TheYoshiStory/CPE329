@@ -31,5 +31,5 @@ void init_imu()
 
     // enable TimerA interrupt
     NVIC->ISER[0] = 1 << ((TA1_0_IRQn) & 31);
-    NVIC->IP[6] |= (0x10 << NVIC_IPR6_PRI_26_OFS) & NVIC_IPR6_PRI_26_M;
+    NVIC->IP[6] |= (0x40 << NVIC_IPR6_PRI_26_OFS) & NVIC_IPR6_PRI_26_M;
 }
